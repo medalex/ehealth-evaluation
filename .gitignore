@@ -1,0 +1,9 @@
+node_modules/
+.env
+bench-zkp/tmp/
+bench-zkp/fixtures/*.ptau
+bench-gas/fixtures/*.json
+*.log
+.DS_Store
+__pycache__/
+.ipynb_checkpoints/

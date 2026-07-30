@@ -1,0 +1,17 @@
+{
+  "name": "ehealth-evaluation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Design Science Research evaluation harness for the eHealth ZKP/DAO prototype: gas, end-to-end latency, governance conflict resolution, and ZKP circuit scaling.",
+  "scripts": {
+    "bench:gas": "node bench-gas/bench-gas.mjs",
+    "bench:e2e": "node bench-e2e/bench-e2e.mjs",
+    "bench:dao": "node bench-dao/bench-conflict.mjs",
+    "bench:zkp": "node bench-zkp/bench-zkp.mjs"
+  },
+  "dependencies": {
+    "ethers": "^6.13.0"
+  },
+  "comment_zkp_dep": "bench-zkp additionally pulls the circuit source + setup.sh from the prover, pinned to a commit for reproducibility: add \"ehealth-zkp-prover\": \"github:medalex/ehealth-zkp-prover#<sha>\" once the sweep is wired."
+}

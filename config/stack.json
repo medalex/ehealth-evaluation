@@ -1,0 +1,19 @@
+{
+  "//": "Endpoints of the running stack. Contract addresses are NOT listed here: the evm redeploys to fresh addresses on every boot and exposes them at <evmApi>/addresses, which the benches fetch at runtime.",
+  "evmRpc": "http://127.0.0.1:8546",
+  "evmApi": "http://127.0.0.1:3010",
+  "chainId": 31338,
+  "mnemonic": "test test test test test test test test test test test junk",
+  "daoMembers": 3,
+  "hospitalApi": "http://127.0.0.1:5001",
+  "pharmacyApi": "http://127.0.0.1:5005",
+  "mfssiaApi": "http://127.0.0.1:3000",
+  "//stackVersions": "Fill in git-sha / image-digest of each repo used for a given run; copy this file into results/ alongside the CSV so every dataset records exactly what it was measured against.",
+  "stackVersions": {
+    "ehealth-evm": "",
+    "ehealth-zkp-prover": "",
+    "mfssia-ehealth": "",
+    "ehealth-hospital-api": "",
+    "ehealth-pharmacy-api": ""
+  }
+}
