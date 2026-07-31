@@ -49,10 +49,19 @@ resolving theory T is refused (403) until the DAO proposal reaches on-chain quor
 
 ## Run
 
+> **Run against a CLEAN stack.** Bring the environment up fresh before benchmarking:
+> `docker compose up` from a clean state (so every service starts *after* `dkg-node`). Do not
+> benchmark a long-running stack, and do not hand-patch it into a working state — results must
+> be reproducible. In particular, if `dkg-node` restarts under already-running services, their
+> cached web3 nonce drifts from the fresh DKG chain and DKG writes fail ("Nonce too high"),
+> which shows up as `BLOCKED` correctness scenarios (consent never anchors → C-DOC-AUTHZ
+> stays false). That is a dirty-environment artifact, not a defect.
+
 ```bash
 npm install
 cp .env.example .env         # adjust ports if needed
-npm run bench:gas            # needs the evm + stack up (docker compose up)
+npm run bench:correctness    # RQ1 — 7-scenario contract (needs the full stack, clean)
+npm run bench:gas            # RQ2/RQ4 — on-chain gas (needs the evm)
 python notebooks/plots.py    # pip install pandas matplotlib
 ```
 
