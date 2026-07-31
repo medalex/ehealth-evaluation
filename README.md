@@ -49,20 +49,40 @@ resolving theory T is refused (403) until the DAO proposal reaches on-chain quor
 
 ## Run
 
-### One-shot (for the paper)
+Two entry points — pick one:
 
-A single command brings the whole stack up from a clean state, waits — however long
-`dkg-node` needs — until the system is *functionally* ready, then runs the benchmarks and
-leaves the stack up:
+| Script | What it does |
+|--------|--------------|
+| `./run-env.sh` | **Environment only** (the stack as before) — for the demo / recording. |
+| `./run-e2e.sh` | **Environment + dockerized tests** — brings up the stack, then a containerized `evaluation` service (in the same compose project) waits for readiness, runs the benches, writes CSVs to `./results/`, and exits. The stack is left running. |
+
+Both do a clean `down -v` first (skip with `KEEP_STATE=1`) and expect the orchestrator repo
+as a sibling (`../ehealth-governance-demo`, override with `BASE=`).
+
+### How the dockerized runner is wired
+
+`docker-compose.eval.yml` adds one `evaluation` service (built from this repo's `Dockerfile`)
+with `depends_on` every stack service, so it starts after them. `run-e2e.sh` merges it with
+the base compose:
 
 ```bash
-./run-eval.sh            # clean `down -v` + `up` + wait + bench:correctness + bench:gas
+docker compose -f ../ehealth-governance-demo/docker-compose.yml -f docker-compose.eval.yml up
 ```
 
-It gates readiness on real HTTP responses (not container `healthy`, which is unreliable
-here), so the slow, one-time bring-up is expected and fine. Knobs: `READY_TIMEOUT` (default
-2400s), `DKG_SETTLE` (60s), `KEEP_STATE=1` to skip the destructive `down -v`, `COMPOSE_DIR`
-to point at the orchestrator repo.
+Inside the compose network the runner talks to services by name (`http://evm:3010`,
+`http://mfssia-ehealth:4000/api`, …); its entrypoint (`lib/wait-ready.mjs`) polls those real
+endpoints until 200 (container `healthy` is unreliable here), then runs the benches. Results
+are bind-mounted back to `./results/`.
+
+> BuildKit fails on the dev host with a `~/.docker/.token_seed` permission error, so
+> `run-e2e.sh` forces the legacy builder (`DOCKER_BUILDKIT=0`). Set `DOCKER_BUILDKIT=1` if
+> your machine is fine.
+
+### Host-based alternative (no eval container)
+
+`./run-eval.sh` does the same clean bring-up + wait + benches, but runs the benches directly
+on the host (Node) instead of in a container. Knobs: `READY_TIMEOUT`, `DKG_SETTLE`,
+`KEEP_STATE=1`, `COMPOSE_DIR`.
 
 ### Manual
 

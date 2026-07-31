@@ -1,0 +1,37 @@
+# Override that adds the dockerized evaluation runner to the governance-demo stack.
+# Combine with the base compose so depends_on + the shared network resolve within one project:
+#   docker compose -f ../ehealth-governance-demo/docker-compose.yml -f docker-compose.eval.yml up
+# (run-e2e.sh does this for you).
+#
+# NOTE: with multiple -f, docker compose resolves relative paths against the FIRST file's
+# directory (ehealth-governance-demo), not this file's. This repo is a sibling of the
+# orchestrator, so the build context and results mount are written as ../ehealth-evaluation.
+services:
+  evaluation:
+    build:
+      context: ../ehealth-evaluation
+    image: ehealth-evaluation:local
+    restart: "no"
+    depends_on:
+      - dkg-node
+      - evm
+      - mfssia-ehealth
+      - patient-api
+      - lab-api
+      - hospital-api
+      - pharmacy-api
+    environment:
+      # In-network URLs (service names + container ports), overriding config/stack.json.
+      RPC_URL: http://evm:8546
+      EVM_API: http://evm:3010
+      MFSSIA_API: http://mfssia-ehealth:4000/api
+      PATIENT_API: http://patient-api:3001
+      LAB_API: http://lab-api:3002
+      HOSPITAL_API: http://hospital-api:3003
+      PHARMACY_API: http://pharmacy-api:3004
+      # Generous waits: fresh stack + slow dkg-node.
+      READY_TIMEOUT_S: "2400"
+      DKG_SETTLE_S: "60"
+      CONSENT_TIMEOUT_MS: "600000"
+    volumes:
+      - ../ehealth-evaluation/results:/app/results   # CSVs land on the host (sibling path, see note)

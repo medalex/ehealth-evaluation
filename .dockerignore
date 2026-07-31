@@ -1,0 +1,9 @@
+node_modules/
+results/
+figures/
+.git/
+.env
+*.log
+notebooks/
+bench-zkp/tmp/
+.DS_Store
