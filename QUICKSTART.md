@@ -1,6 +1,6 @@
 # Reproducing the evaluation — step by step
 
-This guide takes a reviewer from nothing to the results (Allure dashboard + CSV + figures).
+This guide takes you from nothing to the results (Allure dashboard + CSV + figures).
 Everything runs from **pre-built images** — no per-service source build is needed.
 
 ## 0. Prerequisites

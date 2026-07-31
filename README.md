@@ -4,7 +4,7 @@ Design Science Research (DSR) evaluation harness for the eHealth ZKP/DAO prototy
 One reproducible package that measures artifacts living across the component repos —
 without duplicating test code into each one.
 
-> **Just want to run it and see results?** Follow **[REVIEWERS.md](REVIEWERS.md)** — a
+> **Just want to run it and see results?** Follow **[QUICKSTART.md](QUICKSTART.md)** — a
 > from-scratch, step-by-step guide (clone → `./run-e2e.sh` → `npm run report:allure`).
 
 ## Evaluation design (for the paper)
