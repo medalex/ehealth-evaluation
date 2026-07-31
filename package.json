@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Design Science Research evaluation harness for the eHealth ZKP/DAO prototype: gas, end-to-end latency, governance conflict resolution, and ZKP circuit scaling.",
   "scripts": {
+    "bench:correctness": "node bench-correctness/run.mjs",
     "bench:gas": "node bench-gas/bench-gas.mjs",
     "bench:e2e": "node bench-e2e/bench-e2e.mjs",
     "bench:dao": "node bench-dao/bench-conflict.mjs",

@@ -15,7 +15,7 @@ Threats to Validity.
 
 | RQ | Question | Bench | Output |
 |----|----------|-------|--------|
-| RQ1 | Are the claimed guarantees implemented correctly across all 7 scenarios? | (regression suite, see governance-demo README) | pass/fail matrix |
+| RQ1 | Are the claimed guarantees implemented correctly across all 7 scenarios? | `bench-correctness` | `correctness.csv` |
 | RQ2 | How do proof-gen time and gas scale with circuit / policy size? | `bench-zkp`, `bench-gas` | `zkp-scaling.csv`, `gas.csv` |
 | RQ3 | What is the overhead of privacy + decentralisation vs a naive baseline? | `bench-e2e` | `e2e.csv` |
 | RQ4 | What does k-of-n conflict resolution cost (txs / gas / time / scaling)? | `bench-dao`, `bench-gas` | `dao-conflict.csv`, `gas.csv` |
@@ -27,15 +27,25 @@ constant regardless of circuit size (contrast with the growing proof-gen cost in
 
 ```
 config/stack.json   endpoints + versions of the stack under test
-lib/                shared rpc / timer / csv helpers (no per-bench duplication)
-bench-gas/          RQ2/RQ4  on-chain gas          -> results/gas.csv          [runnable]
-bench-e2e/          RQ3      end-to-end latency     -> results/e2e.csv          [TODO]
-bench-dao/          RQ4      conflict round-trip    -> results/dao-conflict.csv [TODO]
-bench-zkp/          RQ2      circuit scaling        -> results/zkp-scaling.csv  [TODO]
+lib/                shared config / api / rpc / timer / csv helpers (no per-bench duplication)
+bench-correctness/  RQ1      7-scenario contract    -> results/correctness.csv  [runnable]
+bench-gas/          RQ2/RQ4  on-chain gas           -> results/gas.csv          [runnable]
+bench-e2e/          RQ3      end-to-end latency      -> results/e2e.csv          [TODO]
+bench-dao/          RQ4      conflict round-trip     -> results/dao-conflict.csv [TODO]
+bench-zkp/          RQ2      circuit scaling         -> results/zkp-scaling.csv  [TODO]
 results/            raw CSV — one row per run, committed as primary data
 notebooks/plots.py  CSV -> IEEE figures in figures/
 figures/            exported .pdf/.eps for LaTeX
 ```
+
+### bench-correctness outcomes
+
+`PASS` / `FAIL` (artifact behaved / did not behave as specified), plus `BLOCKED` — a
+precondition could not be established (e.g. consent never anchored in the DKG, typically an
+unhealthy `dkg-node`), which is **not** an artifact defect — and `SKIP` (the slow timed
+freshness scenario, validated manually per the governance-demo README). Sc4/Sc5 assert the
+core claim deterministically and DKG-write-independently: a semantic conflict is detected and
+resolving theory T is refused (403) until the DAO proposal reaches on-chain quorum.
 
 ## Run
 
