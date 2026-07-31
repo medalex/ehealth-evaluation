@@ -34,4 +34,5 @@ services:
       DKG_SETTLE_S: "60"
       CONSENT_TIMEOUT_MS: "600000"
     volumes:
-      - ../ehealth-evaluation/results:/app/results   # CSVs land on the host (sibling path, see note)
+      - ../ehealth-evaluation/results:/app/results               # CSVs + REPORT.md
+      - ../ehealth-evaluation/allure-results:/app/allure-results # raw Allure results (render on host)

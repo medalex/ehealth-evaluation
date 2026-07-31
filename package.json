@@ -6,6 +6,9 @@
   "description": "Design Science Research evaluation harness for the eHealth ZKP/DAO prototype: gas, end-to-end latency, governance conflict resolution, and ZKP circuit scaling.",
   "scripts": {
     "eval:oneshot": "bash run-eval.sh",
+    "test": "vitest run",
+    "report": "node report.mjs",
+    "report:allure": "allure generate allure-results --clean -o allure-report && allure open allure-report",
     "bench:correctness": "node bench-correctness/run.mjs",
     "bench:gas": "node bench-gas/bench-gas.mjs",
     "bench:e2e": "node bench-e2e/bench-e2e.mjs",
@@ -15,5 +18,11 @@
   "dependencies": {
     "ethers": "^6.13.0"
   },
-  "comment_zkp_dep": "bench-zkp additionally pulls the circuit source + setup.sh from the prover, pinned to a commit for reproducibility: add \"ehealth-zkp-prover\": \"github:medalex/ehealth-zkp-prover#<sha>\" once the sweep is wired."
+  "comment_zkp_dep": "bench-zkp additionally pulls the circuit source + setup.sh from the prover, pinned to a commit for reproducibility: add \"ehealth-zkp-prover\": \"github:medalex/ehealth-zkp-prover#<sha>\" once the sweep is wired.",
+  "devDependencies": {
+    "allure-commandline": "^2.43.0",
+    "allure-js-commons": "^3.10.2",
+    "allure-vitest": "^3.10.2",
+    "vitest": "^3.2.7"
+  }
 }

@@ -29,6 +29,10 @@ constant regardless of circuit size (contrast with the growing proof-gen cost in
 config/stack.json   endpoints + versions of the stack under test
 lib/                shared config / api / rpc / timer / csv helpers (no per-bench duplication)
 bench-correctness/  RQ1      7-scenario contract    -> results/correctness.csv  [runnable]
+  scenarios.mjs       shared scenario definitions (single source of truth)
+  run.mjs             framework-free CSV runner (container)
+  correctness.test.mjs  vitest + Allure suite (npm test)
+report.mjs          results/*.csv -> results/REPORT.md (markdown summary)
 bench-gas/          RQ2/RQ4  on-chain gas           -> results/gas.csv          [runnable]
 bench-e2e/          RQ3      end-to-end latency      -> results/e2e.csv          [TODO]
 bench-dao/          RQ4      conflict round-trip     -> results/dao-conflict.csv [TODO]
@@ -97,10 +101,32 @@ on the host (Node) instead of in a container. Knobs: `READY_TIMEOUT`, `DKG_SETTL
 ```bash
 npm install
 cp .env.example .env         # adjust ports if needed
-npm run bench:correctness    # RQ1 — 7-scenario contract (needs the full stack, clean)
+npm test                     # RQ1 correctness under vitest → allure-results/ + results/correctness.csv
 npm run bench:gas            # RQ2/RQ4 — on-chain gas (needs the evm)
 python notebooks/plots.py    # pip install pandas matplotlib
 ```
+
+`npm run bench:correctness` still exists as a framework-free CSV-only runner (used by the
+container); `npm test` is the same 7 scenarios under vitest and additionally emits Allure.
+
+## Reports
+
+Three views of the results, from richest to simplest:
+
+- **Allure** (test dashboard). `npm test` runs the correctness suite under vitest with the
+  `allure-vitest` adapter and writes `allure-results/`. Render + open the HTML dashboard:
+  ```bash
+  npm run report:allure     # allure generate + open  (needs Java + the allure CLI, bundled via allure-commandline)
+  ```
+  Each scenario carries `epic`/`feature`/`severity` labels and `expected`/`actual`
+  parameters; `BLOCKED`/`SKIP` show as *skipped* (precondition unmet / not applicable), not
+  failed. The dockerized `run-e2e.sh` produces `allure-results/` on the host too — just run
+  `npm run report:allure` afterwards.
+- **Markdown summary.** `npm run report` (`report.mjs`) turns `results/*.csv` into
+  `results/REPORT.md` — the correctness matrix + a gas median/p95 table. No deps.
+- **Figures for LaTeX.** `python notebooks/plots.py` → `figures/*.{pdf,eps}`.
+
+Raw `results/*.csv` remain the primary committed data; the reports are derived views.
 
 ### Reproducibility
 
