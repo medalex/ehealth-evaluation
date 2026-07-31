@@ -49,6 +49,23 @@ resolving theory T is refused (403) until the DAO proposal reaches on-chain quor
 
 ## Run
 
+### One-shot (for the paper)
+
+A single command brings the whole stack up from a clean state, waits — however long
+`dkg-node` needs — until the system is *functionally* ready, then runs the benchmarks and
+leaves the stack up:
+
+```bash
+./run-eval.sh            # clean `down -v` + `up` + wait + bench:correctness + bench:gas
+```
+
+It gates readiness on real HTTP responses (not container `healthy`, which is unreliable
+here), so the slow, one-time bring-up is expected and fine. Knobs: `READY_TIMEOUT` (default
+2400s), `DKG_SETTLE` (60s), `KEEP_STATE=1` to skip the destructive `down -v`, `COMPOSE_DIR`
+to point at the orchestrator repo.
+
+### Manual
+
 > **Run against a CLEAN stack.** Bring the environment up fresh before benchmarking:
 > `docker compose up` from a clean state (so every service starts *after* `dkg-node`). Do not
 > benchmark a long-running stack, and do not hand-patch it into a working state — results must
