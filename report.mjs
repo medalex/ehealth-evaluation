@@ -147,15 +147,23 @@ if (existsSync(R('zkp-scaling.csv'))) {
   p('');
 }
 
-// ── Other scaling benches (present once implemented) ────────────────────────────
-for (const [file, title] of [
-  ['dao-conflict.csv', 'RQ3 — DAO conflict round-trip'],
-]) {
-  if (!existsSync(R(file))) continue;
-  const rows = parseCsv(R(file));
-  p(`## ${title}`);
+// ── RQ3 DAO conflict round-trip (k-of-n governance cost) ────────────────────────
+if (existsSync(R('dao-conflict.csv'))) {
+  const rows = parseCsv(R('dao-conflict.csv'));
+  const g = (v) => Number(v).toLocaleString('en-US');
+  p('## RQ3 — k-of-n governance cost');
   p('');
-  p(`\`${file}\` — ${rows.length} rows. See \`notebooks/plots.py\` for figures.`);
+  p('Cost of resolving one semantic conflict on-chain (propose → vote to quorum → approved),');
+  p('and the one-off DAO deployment, as the member count grows.');
+  p('');
+  p('| members (n) | quorum (k) | deploy gas | resolution gas | median vote gas | votes | wall-clock |');
+  p('|-------------|-----------|-----------|----------------|-----------------|-------|-----------|');
+  for (const r of rows) {
+    p(`| ${r.members} | ${r.threshold} | ${g(r.deployGas)} | ${g(r.resolutionGas)} | ${g(r.voteGasMed)} | ${r.votesCast} | ${Math.round(Number(r.wallMs))} ms |`);
+  }
+  p('');
+  p('> Resolution gas grows ~linearly with the required votes (k); each vote is a small fixed');
+  p('> cost. Deployment is a one-off. All well within ordinary L2/side-chain budgets.');
   p('');
 }
 

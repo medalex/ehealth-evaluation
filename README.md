@@ -44,7 +44,7 @@ bench-correctness/  RQ1      7-scenario contract    -> results/correctness.csv  
 report.mjs          results/*.csv -> results/REPORT.md (markdown summary)
 bench-gas/          RQ2/RQ4  on-chain gas           -> results/gas.csv          [runnable]
 bench-e2e/          RQ4      end-user feasibility    -> results/e2e.csv          [runnable]
-bench-dao/          RQ3      conflict round-trip     -> results/dao-conflict.csv [TODO]
+bench-dao/          RQ3      k-of-n governance cost  -> results/dao-conflict.csv [runnable]
 bench-zkp/          RQ2      circuit scaling         -> results/zkp-scaling.csv  [runnable, host]
 results/            raw CSV — one row per run, committed as primary data
 notebooks/plots.py  CSV -> IEEE figures in figures/
