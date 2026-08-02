@@ -45,7 +45,7 @@ report.mjs          results/*.csv -> results/REPORT.md (markdown summary)
 bench-gas/          RQ2/RQ4  on-chain gas           -> results/gas.csv          [runnable]
 bench-e2e/          RQ4      end-user feasibility    -> results/e2e.csv          [runnable]
 bench-dao/          RQ3      conflict round-trip     -> results/dao-conflict.csv [TODO]
-bench-zkp/          RQ2      circuit scaling         -> results/zkp-scaling.csv  [TODO]
+bench-zkp/          RQ2      circuit scaling         -> results/zkp-scaling.csv  [runnable, host]
 results/            raw CSV — one row per run, committed as primary data
 notebooks/plots.py  CSV -> IEEE figures in figures/
 figures/            exported .pdf/.eps for LaTeX
@@ -150,24 +150,30 @@ dataset is traceable to the exact stack it was measured against.
 3. **bench-dao** — deploys `MinimalGovernance` at varying member counts, drives the loop.
 4. **bench-zkp** — last: needs the circom toolchain.
 
-### ZKP scaling (bench-zkp) — how the Docker recompile works
+### ZKP scaling (bench-zkp) — host-only, needs Docker + the prover sibling
 
-The prover already ships a builder: `ehealth-zkp-prover/Dockerfile.setup` (circom 2.1.6 +
-snarkjs 0.7.6 + circomlib) whose `scripts/setup.sh` runs the full compile + trusted setup,
-with `circuits/` mounted as a volume. To sweep sizes:
+```bash
+npm run bench:zkp        # builds the setup image once, then sweeps sizes (slow — trusted setup per point)
+```
 
-1. Pull the prover source pinned to a commit — add to `package.json`:
-   `"ehealth-zkp-prover": "github:medalex/ehealth-zkp-prover#<sha>"` (gives `.circom` +
-   `setup.sh`; the Docker image does the compilation, so no submodule).
-2. Build the image once: `docker build -f <prover>/Dockerfile.setup -t zkp-setup <prover>`.
-3. For each parameter point, generate a `variant.circom` by `sed`-replacing the
-   `PrescriptionValidation(...)` argument list (last line of the source), then
-   `docker run --rm -v <tmp>/circuits:/work/circuits zkp-setup bash scripts/setup.sh variant`.
-4. Parse `snarkjs r1cs info` for constraint count; `time` the phases; stat the artifacts.
+Uses the prover's `ehealth-zkp-prover/Dockerfile.setup` (circom 2.1.6 + snarkjs 0.7.6 +
+circomlib). For each grid point the bench generates a size-variant by replacing the
+`= PrescriptionValidation(...)` instantiation in the source, then runs `scripts/setup.sh
+<variant>` in the container (`circuits/` mounted as a volume) to compile + trusted-setup. It
+records **R1CS constraints, compile time, trusted-setup time, and .zkey/.wasm/vkey sizes** —
+the no-witness scaling metrics. The grid sweeps two axes the paper argues: allergies
+(`CONTRA_DEPTH`) and drugs (`N_PRESC`).
 
-One small upstream change is needed: `setup.sh` currently hardcodes the circuit name — give
-it a `CIRCUIT_NAME=${1:-prescription_validation_poseidon_merkle}` argument (~3 lines) so the
-same image can build any variant without an image rebuild.
+Notes / knobs:
+- Not run in the eval container (needs Docker itself); host-only. Clone `ehealth-zkp-prover`
+  as a sibling, or set `PROVER_DIR`.
+- `ZKP_PTAU` (default 15 = up to 2^15 constraints) — raise for larger variants.
+- `ZKP_PLATFORM` (default `linux/amd64`) — `Dockerfile.setup` fetches the amd64 circom binary,
+  so on Apple Silicon it runs emulated; that is slower but correct.
+- Uses the legacy Docker builder (`DOCKER_BUILDKIT=0`) to avoid the host `.token_seed` issue.
+- **Prove/verify time per size is out of scope** — it needs a valid per-size witness (Merkle
+  proofs etc.). Constraints are the size proxy (Groth16 prove time is ~linear in them); on-chain
+  verify + proof size stay O(1) (RQ3 gas); proof-gen at the deployed size is the RQ4 slice.
 
 ### verifyProof gas fixture (bench-gas)
 

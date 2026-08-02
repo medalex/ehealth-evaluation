@@ -129,10 +129,27 @@ if (existsSync(R('e2e.csv'))) {
   p('');
 }
 
-// ── Scaling benches (present once implemented) ──────────────────────────────────
+// ── RQ2 ZKP scaling ─────────────────────────────────────────────────────────────
+if (existsSync(R('zkp-scaling.csv'))) {
+  const rows = parseCsv(R('zkp-scaling.csv'));
+  const kb = (b) => (b ? `${(Number(b) / 1024).toFixed(0)} KB` : '—');
+  p('## RQ2 — ZKP circuit scaling');
+  p('');
+  p('| Variant | axis | constraints | compile | setup | .zkey | .wasm |');
+  p('|---------|------|-------------|---------|-------|-------|-------|');
+  for (const r of rows) {
+    p(`| ${r.label} | ${r.axis} | ${Number(r.constraints).toLocaleString('en-US')} | ${r.compileMs} ms | ${r.setupMs} ms | ${kb(r.zkeyBytes)} | ${kb(r.wasmBytes)} |`);
+  }
+  p('');
+  p('> Constraints are the size proxy; Groth16 proof-gen time is ~linear in constraints, while');
+  p('> on-chain verification + proof size stay O(1) (see RQ3 gas). Per-size prove-time needs a');
+  p('> valid per-size witness (out of scope) — proof-gen at the deployed size is an RQ4 slice.');
+  p('');
+}
+
+// ── Other scaling benches (present once implemented) ────────────────────────────
 for (const [file, title] of [
-  ['zkp-scaling.csv', 'RQ2 — ZKP scaling'],
-  ['dao-conflict.csv', 'RQ4 — DAO conflict round-trip'],
+  ['dao-conflict.csv', 'RQ3 — DAO conflict round-trip'],
 ]) {
   if (!existsSync(R(file))) continue;
   const rows = parseCsv(R(file));
