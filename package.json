@@ -12,6 +12,7 @@
     "bench:correctness": "node bench-correctness/run.mjs",
     "bench:gas": "node bench-gas/bench-gas.mjs",
     "bench:e2e": "node bench-e2e/bench-e2e.mjs",
+    "bench:feasibility": "node bench-e2e/bench-e2e.mjs",
     "bench:dao": "node bench-dao/bench-conflict.mjs",
     "bench:zkp": "node bench-zkp/bench-zkp.mjs"
   },

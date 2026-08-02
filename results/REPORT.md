@@ -1,6 +1,6 @@
 # Evaluation report
 
-Generated 2026-07-31T09:24:14.137Z
+Generated 2026-08-02T08:23:24.095Z
 
 ## RQ1 — Correctness
 
@@ -17,4 +17,4 @@ Generated 2026-07-31T09:24:14.137Z
 | Sc7 replay single-use | 🚧 BLOCKED | first ok, second rejected | consent not anchored | needs a valid issued prescription to replay |
 
 ---
-_Not yet produced: e2e.csv, dao-conflict.csv, zkp-scaling.csv (benches pending)._
+_Not yet produced: e2e.csv, gas.csv, dao-conflict.csv, zkp-scaling.csv (benches pending)._

@@ -20,8 +20,14 @@ Threats to Validity.
 |----|----------|-------|--------|
 | RQ1 | Are the claimed guarantees implemented correctly across all 7 scenarios? | `bench-correctness` | `correctness.csv` |
 | RQ2 | How do proof-gen time and gas scale with circuit / policy size? | `bench-zkp`, `bench-gas` | `zkp-scaling.csv`, `gas.csv` |
-| RQ3 | What is the overhead of privacy + decentralisation vs a naive baseline? | `bench-e2e` | `e2e.csv` |
-| RQ4 | What does k-of-n conflict resolution cost (txs / gas / time / scaling)? | `bench-dao`, `bench-gas` | `dao-conflict.csv`, `gas.csv` |
+| RQ3 | What does k-of-n conflict resolution cost (txs / gas / time / scaling)? | `bench-dao`, `bench-gas` | `dao-conflict.csv`, `gas.csv` |
+| RQ4 | Is the end-user wait within acceptable bounds (feasibility)? | `bench-e2e` | `e2e.csv` |
+
+The scientific contribution (ZKP + smart contracts) is measured **in isolation** (RQ2/RQ3);
+the REST/E2E path is *not* benchmarked as if it were the contribution. RQ4 is a separate,
+clearly-labelled **feasibility** metric: it times the two user actions end-to-end and judges
+the perceived wait against the Nielsen/Miller limits (0.1 / 1 / 10 s), isolating the on-chain
+verification slice so the report shows how small the crypto/chain cost is relative to the whole.
 
 Headline result to foreground: Groth16 **verification gas and proof size are O(1)** —
 constant regardless of circuit size (contrast with the growing proof-gen cost in RQ2).
@@ -37,8 +43,8 @@ bench-correctness/  RQ1      7-scenario contract    -> results/correctness.csv  
   correctness.test.mjs  vitest + Allure suite (npm test)
 report.mjs          results/*.csv -> results/REPORT.md (markdown summary)
 bench-gas/          RQ2/RQ4  on-chain gas           -> results/gas.csv          [runnable]
-bench-e2e/          RQ3      end-to-end latency      -> results/e2e.csv          [TODO]
-bench-dao/          RQ4      conflict round-trip     -> results/dao-conflict.csv [TODO]
+bench-e2e/          RQ4      end-user feasibility    -> results/e2e.csv          [runnable]
+bench-dao/          RQ3      conflict round-trip     -> results/dao-conflict.csv [TODO]
 bench-zkp/          RQ2      circuit scaling         -> results/zkp-scaling.csv  [TODO]
 results/            raw CSV — one row per run, committed as primary data
 notebooks/plots.py  CSV -> IEEE figures in figures/

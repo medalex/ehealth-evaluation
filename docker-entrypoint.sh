@@ -15,6 +15,9 @@ npx vitest run; CORR=$?
 echo "[eval] === RQ2/RQ4 bench:gas ==="
 node bench-gas/bench-gas.mjs; GAS=$?
 
+echo "[eval] === RQ4 end-user feasibility (bench:e2e) ==="
+node bench-e2e/bench-e2e.mjs || echo "[eval] e2e skipped/failed (needs a clean stack) — continuing"
+
 echo "[eval] === summary report ==="
 node report.mjs || true
 

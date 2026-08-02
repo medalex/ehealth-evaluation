@@ -86,11 +86,53 @@ if (existsSync(R('gas.csv'))) {
   p('');
 }
 
-// ── Latency / scaling (present once those benches are implemented) ──────────────
-for (const [file, title, xcol, ycol] of [
-  ['e2e.csv', 'RQ3 — End-to-end latency (ms)', 'stage', 'ms'],
-  ['zkp-scaling.csv', 'RQ2 — ZKP scaling', 'constraints', 'proveMs'],
-  ['dao-conflict.csv', 'RQ4 — DAO conflict round-trip', 'members', 'totalGas'],
+// ── RQ4 end-user feasibility ────────────────────────────────────────────────────
+// Total latency of the two user actions, judged against the Nielsen/Miller response-time
+// limits, plus the isolated on-chain verification slice (contribution) so the reader sees
+// how small the crypto/chain cost is relative to the whole.
+function nielsen(ms) {
+  if (ms < 100) return 'instant (<0.1s)';
+  if (ms < 1000) return 'fluid (<1s)';
+  if (ms < 10000) return 'acceptable (<10s attention limit)';
+  return 'OVER the 10s attention limit';
+}
+if (existsSync(R('e2e.csv'))) {
+  const rows = parseCsv(R('e2e.csv')).map((r) => ({ ...r, ms: Number(r.ms), run: Number(r.run) }));
+  const runs = [...new Set(rows.map((r) => r.run))];
+  const sumFor = (run, action) => rows.filter((r) => r.run === run && r.action === action).reduce((a, r) => a + r.ms, 0);
+  const issueTotal = runs.map((run) => rows.find((r) => r.run === run && r.action === 'issue' && r.stage === 'total')?.ms).filter((x) => x != null);
+  const dispTotal = runs.map((run) => sumFor(run, 'dispense')).filter((x) => x > 0);
+  const onchain = rows.filter((r) => r.stage === 'onchain_verify').map((r) => r.ms);
+  const s = (xs) => summarize(xs);
+  const ms = (v) => `${Math.round(v)} ms`;
+
+  p('## RQ4 — End-user feasibility (supplementary)');
+  p('');
+  p('_User-facing latency of the two actions (full request→response), against the Nielsen/Miller');
+  p('response-time limits. Not a core scientific metric — the ZKP/gas contribution is measured');
+  p('in isolation in RQ2/RQ3; here it is contextualised as perceived wait._');
+  p('');
+  p('| User action | runs | median | p95 | verdict |');
+  p('|-------------|------|--------|-----|---------|');
+  if (issueTotal.length) { const a = s(issueTotal); p(`| Clinician: issue prescription | ${a.n} | ${ms(a.median)} | ${ms(a.p95)} | ${nielsen(a.median)} |`); }
+  if (dispTotal.length) { const a = s(dispTotal); p(`| Pharmacist: verify + dispense | ${a.n} | ${ms(a.median)} | ${ms(a.p95)} | ${nielsen(a.median)} |`); }
+  p('');
+  if (onchain.length) {
+    const a = s(onchain);
+    const issMed = issueTotal.length ? s(issueTotal).median : 0;
+    const pct = issMed ? ((a.median / issMed) * 100).toFixed(1) : '—';
+    p(`**Contribution slice** — isolated on-chain Groth16 verification: median ${ms(a.median)} `
+      + `(${pct}% of issuance). Constant regardless of circuit size (Groth16 O(1)).`);
+    p('');
+  }
+  p('> ZKP proof generation (the dominant issuance cost) is measured in isolation in RQ2 (bench-zkp).');
+  p('');
+}
+
+// ── Scaling benches (present once implemented) ──────────────────────────────────
+for (const [file, title] of [
+  ['zkp-scaling.csv', 'RQ2 — ZKP scaling'],
+  ['dao-conflict.csv', 'RQ4 — DAO conflict round-trip'],
 ]) {
   if (!existsSync(R(file))) continue;
   const rows = parseCsv(R(file));
@@ -100,7 +142,7 @@ for (const [file, title, xcol, ycol] of [
   p('');
 }
 
-const notRun = ['e2e.csv', 'dao-conflict.csv', 'zkp-scaling.csv'].filter((f) => !existsSync(R(f)));
+const notRun = ['e2e.csv', 'gas.csv', 'dao-conflict.csv', 'zkp-scaling.csv'].filter((f) => !existsSync(R(f)));
 if (notRun.length) {
   p('---');
   p(`_Not yet produced: ${notRun.join(', ')} (benches pending)._`);
