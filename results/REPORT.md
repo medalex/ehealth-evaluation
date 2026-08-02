@@ -1,30 +1,45 @@
 # Evaluation report
 
-Generated 2026-08-02T19:43:47.885Z
+Generated 2026-08-02T20:06:22.573Z
 
 ## RQ1 — Correctness
 
-**3 passed · 0 failed · 3 blocked · 1 skipped** of 7
+**4 passed · 2 failed · 0 blocked · 1 skipped** of 7
 
 | Scenario | Result | Expected | Actual | Notes |
 |----------|--------|----------|--------|-------|
-| Sc1 valid prescription issued | 🚧 BLOCKED | 201 outcome=true | consent not anchored | C-DOC-AUTHZ never passed — check dkg-node health / consent anchoring |
-| Sc2 ZKP-rejected not issued | 🚧 BLOCKED | 422 issued=false | consent not anchored | precondition (consent) unavailable |
+| Sc1 valid prescription issued | ✅ PASS | 201 outcome=true | 201 outcome=true |  |
+| Sc2 ZKP-rejected not issued | ❌ FAIL | 422 issued=false | 201 issued=undefined | {"id":"c8bbccd9-36fd-47c1-97f7-cbdfadbdab40","doctorId":"00000000-0000-0000-0002-000000000001","patientId":"00000000-0000-0000-0000-000000000001","drugId":107,"dosage":"500mg","outcome":true,"stmtHash |
 | Sc3 access gate blocks unregistered doctor | ✅ PASS | 403 | 403 |  |
-| Sc4 numeric bridge needs DAO consensus | ✅ PASS | gate 403 then approved | proposal=16 gate403=true approved=true |  |
+| Sc4 numeric bridge needs DAO consensus | ✅ PASS | gate 403 then approved | proposal=0 gate403=true approved=true |  |
 | Sc5 terminology alignment needs DAO consensus | ✅ PASS | conflict, gate 403, approved | conflict=true gate403=true approved=true |  |
 | Sc6 proof freshness / validity window | ⏭ SKIP | expired after window | SKIPPED | timed setup — validated manually per README Scenario 6 |
-| Sc7 replay single-use | 🚧 BLOCKED | first ok, second rejected | consent not anchored | needs a valid issued prescription to replay |
+| Sc7 replay single-use | ❌ FAIL | first verified, second replay-rejected | v1=false v2=false |  |
 
 ## RQ2/RQ4 — On-chain gas
 
 | Operation | n | median | p95 | min | max |
 |-----------|---|--------|-----|-----|-----|
-| propose | 15 | 79,944 | 79,944 | 79,932 | 79,944 |
-| vote | 15 | 76,987 | 76,987 | 76,987 | 76,987 |
-| record | 15 | 90,974 | 90,974 | 90,962 | 90,974 |
+| propose | 20 | 79,944 | 79,944 | 79,920 | 79,944 |
+| vote | 20 | 76,987 | 76,987 | 76,987 | 76,987 |
+| record | 20 | 90,974 | 90,974 | 90,962 | 90,974 |
 
 > Groth16 `verifyProof` gas is expected to be **constant** regardless of circuit size.
+
+## RQ4 — End-user feasibility (supplementary)
+
+_User-facing latency of the two actions (full request→response), against the Nielsen/Miller
+response-time limits. Not a core scientific metric — the ZKP/gas contribution is measured
+in isolation in RQ2/RQ3; here it is contextualised as perceived wait._
+
+| User action | runs | median | p95 | verdict |
+|-------------|------|--------|-----|---------|
+| Clinician: issue prescription | 15 | 1820 ms | 1978 ms | acceptable (<10s attention limit) |
+| Pharmacist: verify + dispense | 15 | 933 ms | 1043 ms | fluid (<1s) |
+
+**Contribution slice** — isolated on-chain Groth16 verification: median 341 ms (18.7% of issuance). Constant regardless of circuit size (Groth16 O(1)).
+
+> ZKP proof generation (the dominant issuance cost) is measured in isolation in RQ2 (bench-zkp).
 
 ## RQ3 — k-of-n governance cost
 
@@ -43,4 +58,4 @@ and the one-off DAO deployment, as the member count grows.
 > cost. Deployment is a one-off. All well within ordinary L2/side-chain budgets.
 
 ---
-_Not yet produced: e2e.csv, zkp-scaling.csv (benches pending)._
+_Not yet produced: zkp-scaling.csv (benches pending)._

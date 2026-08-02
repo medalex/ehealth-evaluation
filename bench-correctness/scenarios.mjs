@@ -7,6 +7,8 @@ import { SEED, hospital, pharmacy, mfssia, dao, voteToQuorum, ensureConsentAncho
 
 const HOSPITAL_ORG = 'hospital-1';
 const uid = () => Number(String(Date.now()).slice(-9)) + Math.floor(Math.random() * 1000);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const ANCHOR_TIMEOUT_MS = Number(process.env.ANCHOR_TIMEOUT_MS ?? 90000);
 
 // Shared precondition: consent anchored so the access gate lets issuance through.
 let consentOk = null;
@@ -41,17 +43,26 @@ export const SCENARIOS = [
         return { status: 'BLOCKED', expected: '422 issued=false', actual: 'consent not anchored',
           notes: 'precondition (consent) unavailable' };
       }
+      // The contraindication (P2) is built from the DKG patient-record tree, so the allergy
+      // must anchor first (async on a fresh stack) — re-issue until rejected (422) or timeout.
       await hospital.addAllergy({
         patientId: SEED.patient, substance: 'Penicillin', snomedCode: '372687004',
         codeSystem: 'SNOMED-CT', source: 'correctness-suite',
       });
-      const r = await hospital.issue({
-        doctorId: SEED.doctorInRegistry, patientId: SEED.patient,
-        drugId: SEED.drug.amoxicillin, dosage: '500mg', patientAge: 40, workflowId: uid(),
-      });
+      let r;
+      const deadline = Date.now() + ANCHOR_TIMEOUT_MS;
+      do {
+        r = await hospital.issue({
+          doctorId: SEED.doctorInRegistry, patientId: SEED.patient,
+          drugId: SEED.drug.amoxicillin, dosage: '500mg', patientAge: 40, workflowId: uid(),
+        });
+        if (r.status === 422) break;
+        await sleep(6000);
+      } while (Date.now() < deadline);
       const pass = r.status === 422 && r.body?.issued === false;
       return { status: pass ? 'PASS' : 'FAIL', expected: '422 issued=false',
-        actual: `${r.status} issued=${r.body?.issued}`, notes: pass ? '' : JSON.stringify(r.body).slice(0, 200) };
+        actual: `${r.status} issued=${r.body?.issued}`,
+        notes: pass ? '' : 'still issued — allergy not anchored in DKG or β-lactam closure missing' };
     },
   },
   {
@@ -127,10 +138,13 @@ export const SCENARIOS = [
           notes: 'could not issue a valid prescription to replay' };
       }
       const p = issued.body;
+      // The hospital returns proofJson/publicSignalsJson already serialised as strings — pass
+      // them through as-is; re-stringifying would double-encode and fail on-chain verification.
+      const proofJson = typeof p.proofJson === 'string' ? p.proofJson : JSON.stringify(p.proof ?? {});
+      const publicSignalsJson = typeof p.publicSignalsJson === 'string' ? p.publicSignalsJson : JSON.stringify(p.publicSignals ?? []);
       const receipt = {
         drugId: SEED.drug.metformin, drugName: 'Metformin', dosage: '500mg', patientId: SEED.patient,
-        stmtHash: p.stmtHash, proofJson: JSON.stringify(p.proof ?? p.proofJson ?? {}),
-        publicSignalsJson: JSON.stringify(p.publicSignals ?? p.publicSignalsJson ?? []), outcome: true,
+        stmtHash: p.stmtHash, proofJson, publicSignalsJson, outcome: true,
       };
       const r1 = await pharmacy.receive(receipt);
       const v1 = await pharmacy.verify(r1.body?.id);
