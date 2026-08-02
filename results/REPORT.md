@@ -1,6 +1,6 @@
 # Evaluation report
 
-Generated 2026-08-02T19:37:50.372Z
+Generated 2026-08-02T19:43:47.885Z
 
 ## RQ1 — Correctness
 
@@ -15,6 +15,16 @@ Generated 2026-08-02T19:37:50.372Z
 | Sc5 terminology alignment needs DAO consensus | ✅ PASS | conflict, gate 403, approved | conflict=true gate403=true approved=true |  |
 | Sc6 proof freshness / validity window | ⏭ SKIP | expired after window | SKIPPED | timed setup — validated manually per README Scenario 6 |
 | Sc7 replay single-use | 🚧 BLOCKED | first ok, second rejected | consent not anchored | needs a valid issued prescription to replay |
+
+## RQ2/RQ4 — On-chain gas
+
+| Operation | n | median | p95 | min | max |
+|-----------|---|--------|-----|-----|-----|
+| propose | 15 | 79,944 | 79,944 | 79,932 | 79,944 |
+| vote | 15 | 76,987 | 76,987 | 76,987 | 76,987 |
+| record | 15 | 90,974 | 90,974 | 90,962 | 90,974 |
+
+> Groth16 `verifyProof` gas is expected to be **constant** regardless of circuit size.
 
 ## RQ3 — k-of-n governance cost
 
@@ -33,4 +43,4 @@ and the one-off DAO deployment, as the member count grows.
 > cost. Deployment is a one-off. All well within ordinary L2/side-chain budgets.
 
 ---
-_Not yet produced: e2e.csv, gas.csv, zkp-scaling.csv (benches pending)._
+_Not yet produced: e2e.csv, zkp-scaling.csv (benches pending)._

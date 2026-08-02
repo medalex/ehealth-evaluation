@@ -35,9 +35,23 @@ async function main() {
   // Include the Proposed event so we can recover the exact proposal id from the receipt
   // (robust against concurrent proposals from mfssia / the DAO console on the same contract).
   const govAbi = [...ABI.governance, 'event Proposed(uint256 indexed id, bytes32 indexed policyHash, address indexed proposer)'];
-  const gov0 = new ethers.Contract(addr.governance, govAbi, m0);
-  const gov1 = new ethers.Contract(addr.governance, govAbi, m1);
-  const reg0 = new ethers.Contract(addr.registry, ABI.registry, m0);
+  // These accounts (0,1) are also the evm's own DAO members, so their on-chain nonce can
+  // drift from a fresh ethers read. Wrap in NonceManager and reset+retry on a nonce error —
+  // the same guard the evm itself uses.
+  const nm0 = new ethers.NonceManager(m0);
+  const nm1 = new ethers.NonceManager(m1);
+  const gov0 = new ethers.Contract(addr.governance, govAbi, nm0);
+  const gov1 = new ethers.Contract(addr.governance, govAbi, nm1);
+  const reg0 = new ethers.Contract(addr.registry, ABI.registry, nm0);
+
+  async function txWait(mgr, send) {
+    try { return await (await send()).wait(); }
+    catch (e) {
+      if (!/nonce/i.test(e.message ?? '')) throw e;
+      mgr.reset();
+      return await (await send()).wait();
+    }
+  }
 
   const rows = [];
   const push = (op, run, gasUsed, extra = {}) =>
@@ -46,7 +60,7 @@ async function main() {
   for (let run = 0; run < RUNS; run++) {
     // propose(bytes32): fresh hash each run so we never collide with an existing proposal.
     const hash = randHash();
-    const pr = await (await gov0.propose(hash)).wait();
+    const pr = await txWait(nm0, () => gov0.propose(hash));
     push('propose', run, pr.gasUsed);
 
     // Recover the exact proposal id from the Proposed event in this receipt.
@@ -54,11 +68,11 @@ async function main() {
       .map((l) => { try { return gov0.interface.parseLog(l); } catch { return null; } })
       .find((p) => p && p.name === 'Proposed');
     const id = ev.args.id;
-    const vr = await (await gov1.vote(id)).wait();
+    const vr = await txWait(nm1, () => gov1.vote(id));
     push('vote', run, vr.gasUsed);
 
     // record(bytes32,bool): fresh stmtHash so we never hit the replay guard (409/revert).
-    const rr = await (await reg0.record(randHash(), true)).wait();
+    const rr = await txWait(nm0, () => reg0.record(randHash(), true));
     push('record', run, rr.gasUsed);
   }
 
