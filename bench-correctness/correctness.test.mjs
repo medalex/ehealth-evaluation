@@ -25,7 +25,9 @@ describe('RQ1 — Correctness', () => {
       await feature(sc.feature);
       await severity(sc.severity);
 
+      console.log(`[${sc.id}] ${sc.name} — running (may wait on DKG anchoring)...`);
       const r = await sc.run();
+      console.log(`[${sc.id}] → ${r.status} (${r.actual})`);
       rows.push({ id: sc.id, name: sc.name, expected: r.expected, actual: r.actual, status: r.status, notes: r.notes });
 
       await parameter('expected', String(r.expected));

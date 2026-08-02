@@ -54,9 +54,12 @@ export const SCENARIOS = [
       });
       let anchored = false;
       const deadline = Date.now() + ANCHOR_TIMEOUT_MS;
+      const t0 = Date.now();
+      console.log(`[Sc2] waiting for the Penicillin allergy to anchor into the DKG patient-record (up to ${Math.round(ANCHOR_TIMEOUT_MS / 1000)}s)...`);
       while (Date.now() < deadline) {
         const pr = await mfssia.patientRecord(SEED.patient);
         if ((pr.body?.substanceIds ?? []).includes(1)) { anchored = true; break; }
+        console.log(`[Sc2] allergy not yet in patient-record (t+${Math.round((Date.now() - t0) / 1000)}s)...`);
         await sleep(6000);
       }
       if (!anchored) {
