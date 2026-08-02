@@ -43,26 +43,34 @@ export const SCENARIOS = [
         return { status: 'BLOCKED', expected: '422 issued=false', actual: 'consent not anchored',
           notes: 'precondition (consent) unavailable' };
       }
-      // The contraindication (P2) is built from the DKG patient-record tree, so the allergy
-      // must anchor first (async on a fresh stack) — re-issue until rejected (422) or timeout.
+      // The contraindication (P2) is built from the DKG patient-record tree. Add a Penicillin
+      // allergy (substanceId 1; CONTRA[1][Amoxicillin]=1), then WAIT until it actually appears
+      // in the DKG-derived patient-record before issuing — the DKG write is async on a fresh
+      // stack. This separates "allergy never anchored" (BLOCKED, environment) from "anchored
+      // but contraindication did not fire" (FAIL, artifact).
       await hospital.addAllergy({
         patientId: SEED.patient, substance: 'Penicillin', snomedCode: '372687004',
         codeSystem: 'SNOMED-CT', source: 'correctness-suite',
       });
-      let r;
+      let anchored = false;
       const deadline = Date.now() + ANCHOR_TIMEOUT_MS;
-      do {
-        r = await hospital.issue({
-          doctorId: SEED.doctorInRegistry, patientId: SEED.patient,
-          drugId: SEED.drug.amoxicillin, dosage: '500mg', patientAge: 40, workflowId: uid(),
-        });
-        if (r.status === 422) break;
+      while (Date.now() < deadline) {
+        const pr = await mfssia.patientRecord(SEED.patient);
+        if ((pr.body?.substanceIds ?? []).includes(1)) { anchored = true; break; }
         await sleep(6000);
-      } while (Date.now() < deadline);
+      }
+      if (!anchored) {
+        return { status: 'BLOCKED', expected: '422 issued=false', actual: 'allergy not in patient-record',
+          notes: 'Penicillin allergy never anchored into the DKG patient-record (write/latency) — check dkg-node' };
+      }
+      const r = await hospital.issue({
+        doctorId: SEED.doctorInRegistry, patientId: SEED.patient,
+        drugId: SEED.drug.amoxicillin, dosage: '500mg', patientAge: 40, workflowId: uid(),
+      });
       const pass = r.status === 422 && r.body?.issued === false;
       return { status: pass ? 'PASS' : 'FAIL', expected: '422 issued=false',
         actual: `${r.status} issued=${r.body?.issued}`,
-        notes: pass ? '' : 'still issued — allergy not anchored in DKG or β-lactam closure missing' };
+        notes: pass ? '' : 'allergy anchored but prescription not rejected — P2 contraindication did not fire' };
     },
   },
   {

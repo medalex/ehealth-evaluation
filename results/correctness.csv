@@ -1,8 +1,8 @@
 id,name,expected,actual,status,notes
 Sc1,valid prescription issued,201 outcome=true,201 outcome=true,PASS,
-Sc2,ZKP-rejected not issued,422 issued=false,201 issued=undefined,FAIL,"{""id"":""c8bbccd9-36fd-47c1-97f7-cbdfadbdab40"",""doctorId"":""00000000-0000-0000-0002-000000000001"",""patientId"":""00000000-0000-0000-0000-000000000001"",""drugId"":107,""dosage"":""500mg"",""outcome"":true,""stmtHash"
+Sc2,ZKP-rejected not issued,422 issued=false,422 issued=false,PASS,
 Sc3,access gate blocks unregistered doctor,403,403,PASS,
-Sc4,numeric bridge needs DAO consensus,gate 403 then approved,proposal=0 gate403=true approved=true,PASS,
+Sc4,numeric bridge needs DAO consensus,gate 403 then approved,proposal=23 gate403=true approved=true,PASS,
 Sc5,terminology alignment needs DAO consensus,"conflict, gate 403, approved",conflict=true gate403=true approved=true,PASS,
 Sc6,proof freshness / validity window,expired after window,SKIPPED,SKIP,timed setup — validated manually per README Scenario 6
-Sc7,replay single-use,"first verified, second replay-rejected",v1=false v2=false,FAIL,
+Sc7,replay single-use,"first verified, second replay-rejected",v1=true v2=false,PASS,
