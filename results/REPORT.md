@@ -1,6 +1,6 @@
 # Evaluation report
 
-Generated 2026-08-03T12:46:33.732Z
+Generated 2026-08-03T20:31:55.891Z
 
 ## RQ1 — Correctness
 
@@ -20,9 +20,9 @@ Generated 2026-08-03T12:46:33.732Z
 
 | Operation | n | median | p95 | min | max |
 |-----------|---|--------|-----|-----|-----|
-| propose | 20 | 79,944 | 79,944 | 79,932 | 79,944 |
-| vote | 20 | 76,987 | 76,987 | 76,987 | 76,987 |
-| record | 20 | 90,974 | 90,974 | 90,962 | 90,974 |
+| propose | 10 | 79,944 | 79,944 | 79,932 | 79,944 |
+| vote | 10 | 76,987 | 76,987 | 76,987 | 76,987 |
+| record | 10 | 90,974 | 90,974 | 90,962 | 90,974 |
 
 > Groth16 `verifyProof` gas is expected to be **constant** regardless of circuit size.
 
@@ -56,6 +56,16 @@ and the one-off DAO deployment, as the member count grows.
 
 > Resolution gas grows ~linearly with the required votes (k); each vote is a small fixed
 > cost. Deployment is a one-off. All well within ordinary L2/side-chain budgets.
+
+## Supporting — governance-query latency vs #policies
+
+How long the prover's `GET /policies` (SPARQL over the DKG) takes as the policy set grows.
+
+| policies in graph | query median | p95 | samples |
+|-------------------|--------------|-----|---------|
+| 1 | 32.2 ms | 32.5 ms | 5 |
+| 5 | 24.9 ms | 30.6 ms | 5 |
+| 9 | 22.5 ms | 22.6 ms | 5 |
 
 ---
 _Not yet produced: zkp-scaling.csv (benches pending)._

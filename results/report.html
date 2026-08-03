@@ -41,10 +41,10 @@
 <body>
 <header><h1>eHealth prototype — evaluation results</h1>
 <p>Three questions: <b>does it work correctly?</b> · <b>what does it cost?</b> · <b>is it fast
-enough?</b> — Generated 8/3/2026, 6:36:20 PM. This file is self-contained: open it in any
+enough?</b> — Generated 8/3/2026, 11:31:56 PM. This file is self-contained: open it in any
 browser, no server or internet needed. Click the tabs below.</p></header>
 <main>
-  <nav class="tabs"><button class="tab active" data-tab="correctness">Correctness <span class="tbadge">✓</span></button><button class="tab" data-tab="gas">Cost (gas)</button><button class="tab" data-tab="feasibility">Speed</button><button class="tab" data-tab="dao">Governance</button><button class="tab" data-tab="pending">Not run yet</button></nav>
+  <nav class="tabs"><button class="tab active" data-tab="correctness">Correctness <span class="tbadge">✓</span></button><button class="tab" data-tab="gas">Cost (gas)</button><button class="tab" data-tab="feasibility">Speed</button><button class="tab" data-tab="dao">Governance</button><button class="tab" data-tab="policies">Policies scaling</button><button class="tab" data-tab="pending">Not run yet</button></nav>
   <section class="panel active" id="panel-correctness"><h2>Correctness — does the system do the right thing?</h2>
       <p class="intro">Each row is one real end-to-end scenario, run against the live system. It
       checks that the described behaviour actually happens. <b class="pass-t">PASS</b> = behaved
@@ -81,6 +81,12 @@ browser, no server or internet needed. Click the tabs below.</p></header>
       <div class="tw"><table><thead><tr><th>Committee size (n)</th><th>Votes needed (k)</th><th>One-time setup gas</th><th>Per-conflict gas</th><th>Time</th></tr></thead><tbody><tr><td><b>3</b></td><td>2</td><td>937,792</td><td>265,014</td><td>521 ms</td></tr><tr><td><b>4</b></td><td>3</td><td>961,087</td><td>325,500</td><td>722 ms</td></tr><tr><td><b>5</b></td><td>3</td><td>984,382</td><td>325,500</td><td>758 ms</td></tr><tr><td><b>6</b></td><td>4</td><td>1,007,677</td><td>385,974</td><td>910 ms</td></tr><tr><td><b>7</b></td><td>5</td><td>1,030,972</td><td>446,448</td><td>1062 ms</td></tr></tbody></table></div>
       <p class="note">Per-conflict cost grows gently (roughly one small vote each); nothing here
       is expensive by blockchain standards.</p></section>
+<section class="panel" id="panel-policies"><h2>Governance-query latency — does it scale with the number of policies?</h2>
+      <p class="intro">The prover reads the full set of clinical policies (theory T) from the
+      knowledge graph at issuance time. This measures how long that <code>GET /policies</code>
+      query takes as more policies are stored — the “number of policies” axis the other tabs
+      don't cover. Flat is good (adding rules doesn't slow the system down).</p>
+      <div class="tw"><table><thead><tr><th>Policies in the graph</th><th>Query time (median)</th><th>Worst case (p95)</th><th>samples</th></tr></thead><tbody><tr><td><b>1</b></td><td>32.2 ms</td><td>32.5 ms</td><td>5</td></tr><tr><td><b>5</b></td><td>24.9 ms</td><td>30.6 ms</td><td>5</td></tr><tr><td><b>9</b></td><td>22.5 ms</td><td>22.6 ms</td><td>5</td></tr></tbody></table></div></section>
 <section class="panel" id="panel-pending"><h2>Benchmarks not run yet</h2>
       <p class="intro">These produce no data until you run the matching command:</p>
       <ul><li><b>ZKP scaling</b> — <code>npm run bench:zkp</code> → <code>zkp-scaling.csv</code></li></ul></section>

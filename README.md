@@ -46,6 +46,7 @@ bench-gas/          RQ2/RQ4  on-chain gas           -> results/gas.csv          
 bench-e2e/          RQ4      end-user feasibility    -> results/e2e.csv          [runnable]
 bench-dao/          RQ3      k-of-n governance cost  -> results/dao-conflict.csv [runnable]
 bench-zkp/          RQ2      circuit scaling         -> results/zkp-scaling.csv  [runnable, host]
+bench-policies/     support  query latency vs #pol.  -> results/policies-scaling.csv [runnable]
 results/            raw CSV — one row per run, committed as primary data
 notebooks/plots.py  CSV -> IEEE figures in figures/
 figures/            exported .pdf/.eps for LaTeX

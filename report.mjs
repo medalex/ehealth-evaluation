@@ -167,7 +167,20 @@ if (existsSync(R('dao-conflict.csv'))) {
   p('');
 }
 
-const notRun = ['e2e.csv', 'gas.csv', 'dao-conflict.csv', 'zkp-scaling.csv'].filter((f) => !existsSync(R(f)));
+// ── Policies scaling (query latency vs #policies) ───────────────────────────────
+if (existsSync(R('policies-scaling.csv'))) {
+  const rows = parseCsv(R('policies-scaling.csv'));
+  p('## Supporting — governance-query latency vs #policies');
+  p('');
+  p('How long the prover\'s `GET /policies` (SPARQL over the DKG) takes as the policy set grows.');
+  p('');
+  p('| policies in graph | query median | p95 | samples |');
+  p('|-------------------|--------------|-----|---------|');
+  for (const r of rows) p(`| ${r.policyCount} | ${r.queryMedianMs} ms | ${r.queryP95Ms} ms | ${r.samples} |`);
+  p('');
+}
+
+const notRun = ['e2e.csv', 'gas.csv', 'dao-conflict.csv', 'zkp-scaling.csv', 'policies-scaling.csv'].filter((f) => !existsSync(R(f)));
 if (notRun.length) {
   p('---');
   p(`_Not yet produced: ${notRun.join(', ')} (benches pending)._`);

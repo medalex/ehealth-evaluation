@@ -236,8 +236,23 @@ if (zkp) {
   });
 }
 
+// ── Policies scaling (governance-query latency vs #policies) ─────────────────
+const pol = parseCsv(R('policies-scaling.csv'));
+if (pol) {
+  const rows = pol.map((r) => [`<b>${esc(r.policyCount)}</b>`, `${esc(r.queryMedianMs)} ms`, `${esc(r.queryP95Ms)} ms`, esc(r.samples)]);
+  tabs.push({
+    id: 'policies', label: 'Policies scaling',
+    body: `<h2>Governance-query latency — does it scale with the number of policies?</h2>
+      <p class="intro">The prover reads the full set of clinical policies (theory T) from the
+      knowledge graph at issuance time. This measures how long that <code>GET /policies</code>
+      query takes as more policies are stored — the “number of policies” axis the other tabs
+      don't cover. Flat is good (adding rules doesn't slow the system down).</p>
+      ${table(['Policies in the graph', 'Query time (median)', 'Worst case (p95)', 'samples'], rows)}`,
+  });
+}
+
 // Placeholder tab for benches not yet produced.
-const missing = [['e2e.csv', 'Speed', 'e2e'], ['dao-conflict.csv', 'Governance', 'dao'], ['zkp-scaling.csv', 'ZKP scaling', 'zkp']].filter(([f]) => !existsSync(R(f)));
+const missing = [['e2e.csv', 'Speed', 'e2e'], ['dao-conflict.csv', 'Governance', 'dao'], ['zkp-scaling.csv', 'ZKP scaling', 'zkp'], ['policies-scaling.csv', 'Policies scaling', 'policies']].filter(([f]) => !existsSync(R(f)));
 if (missing.length) {
   tabs.push({
     id: 'pending', label: 'Not run yet',
