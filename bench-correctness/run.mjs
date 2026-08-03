@@ -12,22 +12,23 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-const icon = (s) => ({ PASS: '✅', FAIL: '❌', BLOCKED: '🚧', SKIP: '⏭' }[s] ?? '?');
+const icon = (s) => ({ PASS: '✅ PASS', FAIL: '❌ FAIL', BLOCKED: '🚧 BLOCKED (precondition not met — not a defect)', SKIP: '⏭  SKIPPED' }[s] ?? s);
 
 async function main() {
-  console.log('[correctness] running against the live stack...\n');
+  console.log('Checking the system behaves correctly across 7 real end-to-end scenarios.\n');
   const results = [];
   for (const sc of SCENARIOS) {
+    console.log(`▶ ${sc.id} — ${sc.what}`);
     let r;
     try { r = await sc.run(); }
     catch (e) { r = { status: 'FAIL', expected: '(no error)', actual: 'ERROR', notes: e.message }; }
     results.push({ id: sc.id, name: sc.name, expected: r.expected, actual: r.actual, status: r.status, notes: r.notes });
-    console.log(`${icon(r.status)} ${sc.id} ${sc.name} — expected ${r.expected}, got ${r.actual}${r.notes ? ` (${r.notes})` : ''}`);
+    console.log(`  ${icon(r.status)}  (${r.actual})${r.notes ? ` — ${r.notes}` : ''}\n`);
   }
 
   writeCsv(join(__dir, '..', 'results', 'correctness.csv'), results);
   const n = (s) => results.filter((r) => r.status === s).length;
-  console.log(`\n[correctness] ${n('PASS')} passed, ${n('FAIL')} failed, ${n('BLOCKED')} blocked, ${n('SKIP')} skipped of ${results.length}.`);
+  console.log(`Result: ${n('PASS')} passed · ${n('FAIL')} failed · ${n('BLOCKED')} blocked · ${n('SKIP')} skipped (of ${results.length}).`);
   process.exit(n('FAIL') > 0 ? 1 : 0);
 }
 

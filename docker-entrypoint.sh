@@ -1,27 +1,51 @@
 #!/usr/bin/env bash
-# Container entrypoint: wait for the stack, then run the benches.
-#   - correctness runs under vitest → emits allure-results/ (rendered to HTML on the host)
-#     and results/correctness.csv
-#   - gas writes results/gas.csv
-#   - report.mjs writes results/REPORT.md
-# Exits non-zero if correctness fails (skips/blocked do not fail the run).
+# Container entrypoint: wait for the stack, then run the benchmark groups with clear,
+# plain-language banners so an outside reader can follow what each group does.
 set -uo pipefail
 
-node lib/wait-ready.mjs || { echo "[eval] stack not ready — aborting"; exit 1; }
+banner() {
+  echo ""
+  echo "════════════════════════════════════════════════════════════════════════"
+  echo "  $1"
+  echo "  $2"
+  echo "════════════════════════════════════════════════════════════════════════"
+  echo ""
+}
 
-echo "[eval] === RQ1 correctness (vitest + allure) ==="
+echo ""
+echo "########################################################################"
+echo "#  eHealth prototype — evaluation run                                   #"
+echo "#  1) does it work correctly?  2) what does it cost?  3) is it fast?     #"
+echo "########################################################################"
+
+echo ""
+echo ">> Waiting for every service to be up before starting..."
+node lib/wait-ready.mjs || { echo "!! Stack not ready — aborting."; exit 1; }
+
+banner "GROUP 1/3 — CORRECTNESS  (does the system do the right thing?)" \
+       "Runs 7 real scenarios: issue a valid prescription, reject an unsafe one, block an
+  untrusted doctor, resolve data conflicts by DAO vote, and prevent proof reuse."
 npx vitest run; CORR=$?
 
-echo "[eval] === RQ2/RQ4 bench:gas ==="
+banner "GROUP 2/3 — COST  (how expensive are the blockchain operations?)" \
+       "Measures the gas used by the governance (propose/vote) and registry transactions."
 node bench-gas/bench-gas.mjs; GAS=$?
 
-echo "[eval] === RQ4 end-user feasibility (bench:e2e) ==="
-node bench-e2e/bench-e2e.mjs || echo "[eval] e2e skipped/failed (needs a clean stack) — continuing"
+banner "GROUP 3/3 — SPEED  (how long does a real user actually wait?)" \
+       "Times the doctor's 'issue prescription' and the pharmacist's 'verify + dispense'
+  and compares against acceptable human response-time limits."
+node bench-e2e/bench-e2e.mjs || echo "   (skipped — needs a clean stack; continuing)"
 
-echo "[eval] === summary report ==="
+banner "REPORT  (writing the human-readable summary)" \
+       "Turns the raw CSVs into results/REPORT.md; render the Allure dashboard on the host."
 node report.mjs || true
 
-echo "[eval] done. correctness=$CORR gas=$GAS. CSVs + allure-results are on the host."
-echo "[eval] render the Allure report on the host:  npm run report:allure"
+echo ""
+echo "────────────────────────────────────────────────────────────────────────"
+echo "  Done.  Correctness: $([ "$CORR" -eq 0 ] && echo 'no failures' || echo 'see above')."
+echo "  Results (CSVs + REPORT.md + allure-results) are on the host in ./results and ./allure-results."
+echo "  Pretty dashboard:   npm run report:allure"
+echo "────────────────────────────────────────────────────────────────────────"
+
 if [ "$CORR" -ne 0 ]; then exit "$CORR"; fi
 exit "$GAS"

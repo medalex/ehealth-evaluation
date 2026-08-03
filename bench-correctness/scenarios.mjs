@@ -22,6 +22,7 @@ async function consentReady() {
 export const SCENARIOS = [
   {
     id: 'Sc1', name: 'valid prescription issued', feature: 'Issuance', severity: 'blocker',
+    what: 'A doctor writes a valid prescription — it passes the zero-knowledge check and is issued.',
     async run() {
       if (!(await consentReady())) {
         return { status: 'BLOCKED', expected: '201 outcome=true', actual: 'consent not anchored',
@@ -38,6 +39,7 @@ export const SCENARIOS = [
   },
   {
     id: 'Sc2', name: 'ZKP-rejected not issued', feature: 'Issuance', severity: 'critical',
+    what: 'A prescription that fails the clinical check (drug the patient is allergic to) is rejected, not issued.',
     async run() {
       if (!(await consentReady())) {
         return { status: 'BLOCKED', expected: '422 issued=false', actual: 'consent not anchored',
@@ -78,6 +80,7 @@ export const SCENARIOS = [
   },
   {
     id: 'Sc3', name: 'access gate blocks unregistered doctor', feature: 'Access control', severity: 'critical',
+    what: 'A doctor not in the trust registry is blocked from writing a prescription (access denied).',
     async run() {
       const r = await hospital.issue({
         doctorId: SEED.doctorNotInRegistry, patientId: SEED.patient,
@@ -90,6 +93,7 @@ export const SCENARIOS = [
   },
   {
     id: 'Sc4', name: 'numeric bridge needs DAO consensus', feature: 'Semantic governance', severity: 'critical',
+    what: 'A units mismatch between labs can only be resolved by a DAO vote — one party cannot change it alone.',
     async run() {
       const unit = `zz-unit-${uid()}`;
       const bridge = { metric: 'eGFR', fromUnit: unit, toUnit: 'mL/min/1.73m²', factor: 1 };
@@ -108,6 +112,7 @@ export const SCENARIOS = [
   },
   {
     id: 'Sc5', name: 'terminology alignment needs DAO consensus', feature: 'Semantic governance', severity: 'critical',
+    what: 'A local drug code with no standard mapping is resolved only after a DAO vote approves the alignment.',
     async run() {
       const code = `LOCAL-${uid()}`;
       const conflict = await mfssia.align({ system: 'AllergyDB-Local', code, term: 'test-substance' });
@@ -128,6 +133,7 @@ export const SCENARIOS = [
   },
   {
     id: 'Sc6', name: 'proof freshness / validity window', feature: 'Dispensing', severity: 'normal',
+    what: 'A prescription proof expires after its validity window (checked manually — see README Scenario 6).',
     async run() {
       return { status: 'SKIP', expected: 'expired after window', actual: 'SKIPPED',
         notes: 'timed setup — validated manually per README Scenario 6' };
@@ -135,6 +141,7 @@ export const SCENARIOS = [
   },
   {
     id: 'Sc7', name: 'replay single-use', feature: 'Dispensing', severity: 'critical',
+    what: 'The same prescription proof can be dispensed only once — a replayed proof is refused.',
     async run() {
       if (!(await consentReady())) {
         return { status: 'BLOCKED', expected: 'first ok, second rejected', actual: 'consent not anchored',
