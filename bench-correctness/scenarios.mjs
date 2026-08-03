@@ -10,6 +10,27 @@ const uid = () => Number(String(Date.now()).slice(-9)) + Math.floor(Math.random(
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ANCHOR_TIMEOUT_MS = Number(process.env.ANCHOR_TIMEOUT_MS ?? 90000);
 
+// Read the validFor public signal (index 3) from an issued prescription.
+function validForOf(body) {
+  try {
+    const ps = typeof body.publicSignalsJson === 'string' ? JSON.parse(body.publicSignalsJson) : (body.publicSignals ?? []);
+    return Number(ps[3]);
+  } catch { return NaN; }
+}
+
+// Forward an issued prescription to the pharmacy and verify it; returns the pharmacy's
+// verified flag (the freshness/replay/on-chain gate all run inside verify).
+async function pharmacyVerify(body, drugId, drugName) {
+  const proofJson = typeof body.proofJson === 'string' ? body.proofJson : JSON.stringify(body.proof ?? {});
+  const publicSignalsJson = typeof body.publicSignalsJson === 'string' ? body.publicSignalsJson : JSON.stringify(body.publicSignals ?? []);
+  const recv = await pharmacy.receive({
+    drugId, drugName, dosage: '500mg', patientId: SEED.patient,
+    stmtHash: body.stmtHash, proofJson, publicSignalsJson, outcome: true,
+  });
+  const v = await pharmacy.verify(recv.body?.id);
+  return v.body?.verified === true;
+}
+
 // Shared precondition: consent anchored so the access gate lets issuance through.
 let consentOk = null;
 async function consentReady() {
@@ -133,10 +154,73 @@ export const SCENARIOS = [
   },
   {
     id: 'Sc6', name: 'proof freshness / validity window', feature: 'Dispensing', severity: 'normal',
-    what: 'A prescription proof expires after its validity window (checked manually — see README Scenario 6).',
+    what: 'A prescription proof expires after its validity window: fresh dispenses, stale is refused.',
     async run() {
-      return { status: 'SKIP', expected: 'expired after window', actual: 'SKIPPED',
-        notes: 'timed setup — validated manually per README Scenario 6' };
+      // Opt-in: this scenario waits a real validity window (~60s+), so it is skipped in a
+      // normal fast run. Enable with RUN_FRESHNESS=1 (the paper run does this once).
+      if (process.env.RUN_FRESHNESS !== '1') {
+        return { status: 'SKIP', expected: 'fresh ok, stale refused', actual: 'SKIPPED',
+          notes: 'timed (~90s) — set RUN_FRESHNESS=1 to run it' };
+      }
+      if (!(await consentReady())) {
+        return { status: 'BLOCKED', expected: 'fresh ok, stale refused', actual: 'consent not anchored',
+          notes: 'needs a valid issued prescription' };
+      }
+      const WINDOW = Number(process.env.FRESHNESS_WINDOW_S ?? 60);
+      const drug = SEED.drug.metformin;
+
+      // Publish a short validity window for metformin (validFor = deltaMax). Direct publish
+      // (setup), then wait until it is queryable in the DKG.
+      await mfssia.publishPolicy({
+        code: `pol:metformin-freshness-${uid()}`, name: 'Metformin short validity (Sc6)',
+        medicationCode: 'metformin', clinicalCondition: 'eGFR',
+        comparisonOperator: '>=', threshold: 0, deltaMax: WINDOW,
+      }, true);
+      // The /policies query nests the list under data.data, has no medicationCode field (it is
+      // in the id), and returns RDF literals like "60"^^...#integer — clean accordingly.
+      const litNum = (v) => Number(String(v ?? '').split('^^')[0].replace(/"/g, ''));
+      const deadline = Date.now() + ANCHOR_TIMEOUT_MS;
+      let shortPolicy = false;
+      console.log(`[Sc6] waiting for the short (${WINDOW}s) metformin validity policy to anchor...`);
+      while (Date.now() < deadline) {
+        const pl = await mfssia.listPolicies();
+        const list = Array.isArray(pl.body?.data) ? pl.body.data : (Array.isArray(pl.body) ? pl.body : []);
+        if (list.some((p) => String(p.id ?? '').toLowerCase().includes('metformin') && litNum(p.deltaMax) <= WINDOW + 5)) { shortPolicy = true; break; }
+        await sleep(6000);
+      }
+      if (!shortPolicy) {
+        return { status: 'BLOCKED', expected: 'fresh ok, stale refused', actual: 'short policy not anchored',
+          notes: 'validity policy never appeared in the DKG (write/latency)' };
+      }
+
+      // Issue a prescription and confirm it actually picked up the short window.
+      const a = await hospital.issue({ doctorId: SEED.doctorInRegistry, patientId: SEED.patient, drugId: drug, dosage: '500mg', patientAge: 55, workflowId: uid() });
+      if (a.status !== 201) {
+        return { status: 'BLOCKED', expected: 'fresh ok, stale refused', actual: `issue=${a.status}`,
+          notes: 'issuance did not succeed after publishing the short policy' };
+      }
+      // Accept whatever short window actually applied (multiple metformin policies may exist;
+      // the prover picks one). Only require it to be short enough to test in bounded time.
+      const vf = validForOf(a.body);
+      const MAX_TESTABLE = Number(process.env.FRESHNESS_MAX_S ?? 180);
+      if (!(vf > 0 && vf <= MAX_TESTABLE)) {
+        return { status: 'BLOCKED', expected: 'fresh ok, stale refused', actual: `validFor=${vf}`,
+          notes: `no short validity window applied (validFor=${vf}s > ${MAX_TESTABLE}s) — the default/long policy won` };
+      }
+
+      // Fresh: verify immediately — must pass.
+      const freshOk = await pharmacyVerify(a.body, drug, 'Metformin');
+
+      // Stale: issue another, wait past the window, verify — must be refused.
+      const b = await hospital.issue({ doctorId: SEED.doctorInRegistry, patientId: SEED.patient, drugId: drug, dosage: '500mg', patientAge: 55, workflowId: uid() });
+      console.log(`[Sc6] waiting ${vf + 8}s for the proof to expire...`);
+      await sleep((vf + 8) * 1000);
+      const staleOk = b.status === 201 ? await pharmacyVerify(b.body, drug, 'Metformin') : true;
+
+      const pass = freshOk === true && staleOk === false;
+      return { status: pass ? 'PASS' : 'FAIL', expected: 'fresh verified, stale refused',
+        actual: `fresh=${freshOk} stale=${staleOk} (window=${vf}s)`,
+        notes: pass ? '' : 'freshness gate did not behave as expected' };
     },
   },
   {

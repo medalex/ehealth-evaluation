@@ -1,6 +1,6 @@
 # Evaluation report
 
-Generated 2026-08-03T11:27:57.026Z
+Generated 2026-08-03T12:46:33.732Z
 
 ## RQ1 — Correctness
 
@@ -11,7 +11,7 @@ Generated 2026-08-03T11:27:57.026Z
 | Sc1 valid prescription issued | ✅ PASS | 201 outcome=true | 201 outcome=true |  |
 | Sc2 ZKP-rejected not issued | ✅ PASS | 422 issued=false | 422 issued=false |  |
 | Sc3 access gate blocks unregistered doctor | ✅ PASS | 403 | 403 |  |
-| Sc4 numeric bridge needs DAO consensus | ✅ PASS | gate 403 then approved | proposal=0 gate403=true approved=true |  |
+| Sc4 numeric bridge needs DAO consensus | ✅ PASS | gate 403 then approved | proposal=23 gate403=true approved=true |  |
 | Sc5 terminology alignment needs DAO consensus | ✅ PASS | conflict, gate 403, approved | conflict=true gate403=true approved=true |  |
 | Sc6 proof freshness / validity window | ⏭ SKIP | expired after window | SKIPPED | timed setup — validated manually per README Scenario 6 |
 | Sc7 replay single-use | ✅ PASS | first verified, second replay-rejected | v1=true v2=false |  |
@@ -20,9 +20,9 @@ Generated 2026-08-03T11:27:57.026Z
 
 | Operation | n | median | p95 | min | max |
 |-----------|---|--------|-----|-----|-----|
-| propose | 20 | 79,944 | 79,944 | 79,944 | 79,944 |
+| propose | 20 | 79,944 | 79,944 | 79,932 | 79,944 |
 | vote | 20 | 76,987 | 76,987 | 76,987 | 76,987 |
-| record | 20 | 90,974 | 90,974 | 90,974 | 90,974 |
+| record | 20 | 90,974 | 90,974 | 90,962 | 90,974 |
 
 > Groth16 `verifyProof` gas is expected to be **constant** regardless of circuit size.
 
@@ -34,10 +34,10 @@ in isolation in RQ2/RQ3; here it is contextualised as perceived wait._
 
 | User action | runs | median | p95 | verdict |
 |-------------|------|--------|-----|---------|
-| Clinician: issue prescription | 15 | 1872 ms | 2019 ms | acceptable (<10s attention limit) |
-| Pharmacist: verify + dispense | 15 | 957 ms | 1067 ms | fluid (<1s) |
+| Clinician: issue prescription | 15 | 1964 ms | 2271 ms | acceptable (<10s attention limit) |
+| Pharmacist: verify + dispense | 15 | 977 ms | 1029 ms | fluid (<1s) |
 
-**Contribution slice** — isolated on-chain Groth16 verification: median 340 ms (18.2% of issuance). Constant regardless of circuit size (Groth16 O(1)).
+**Contribution slice** — isolated on-chain Groth16 verification: median 343 ms (17.5% of issuance). Constant regardless of circuit size (Groth16 O(1)).
 
 > ZKP proof generation (the dominant issuance cost) is measured in isolation in RQ2 (bench-zkp).
 

@@ -16,7 +16,7 @@ vote,4,76987
 record,4,90974
 propose,5,79944
 vote,5,76987
-record,5,90974
+record,5,90962
 propose,6,79944
 vote,6,76987
 record,6,90974
@@ -25,14 +25,14 @@ vote,7,76987
 record,7,90974
 propose,8,79944
 vote,8,76987
-record,8,90974
+record,8,90962
 propose,9,79944
 vote,9,76987
 record,9,90974
 propose,10,79944
 vote,10,76987
 record,10,90974
-propose,11,79944
+propose,11,79932
 vote,11,76987
 record,11,90974
 propose,12,79944
@@ -44,9 +44,9 @@ record,13,90974
 propose,14,79944
 vote,14,76987
 record,14,90974
-propose,15,79944
+propose,15,79932
 vote,15,76987
-record,15,90974
+record,15,90962
 propose,16,79944
 vote,16,76987
 record,16,90974

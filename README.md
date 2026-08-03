@@ -55,10 +55,17 @@ figures/            exported .pdf/.eps for LaTeX
 
 `PASS` / `FAIL` (artifact behaved / did not behave as specified), plus `BLOCKED` — a
 precondition could not be established (e.g. consent never anchored in the DKG, typically an
-unhealthy `dkg-node`), which is **not** an artifact defect — and `SKIP` (the slow timed
-freshness scenario, validated manually per the governance-demo README). Sc4/Sc5 assert the
-core claim deterministically and DKG-write-independently: a semantic conflict is detected and
-resolving theory T is refused (403) until the DAO proposal reaches on-chain quorum.
+unhealthy `dkg-node`), which is **not** an artifact defect — and `SKIP` (the timed freshness
+scenario Sc6, off by default). Sc4/Sc5 assert the core claim deterministically and
+DKG-write-independently: a semantic conflict is detected and resolving theory T is refused
+(403) until the DAO proposal reaches on-chain quorum.
+
+**Sc6 (proof freshness) is opt-in** because it waits a real validity window (~90s). Enable it
+with `RUN_FRESHNESS=1`: it publishes a short-window metformin policy, confirms a fresh proof
+dispenses, then waits past the window and confirms the stale proof is refused. Knobs:
+`FRESHNESS_WINDOW_S` (default 60), `FRESHNESS_MAX_S` (max window it will wait out, default 180).
+In the container run: `docker compose ... run -e RUN_FRESHNESS=1 evaluation` (or set it in
+`docker-compose.eval.yml`).
 
 ## Run
 
