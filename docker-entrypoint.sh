@@ -25,6 +25,8 @@ node lib/wait-ready.mjs || { echo "!! Stack not ready — aborting."; exit 1; }
 banner "GROUP 1/3 — CORRECTNESS  (does the system do the right thing?)" \
        "Runs 7 real scenarios: issue a valid prescription, reject an unsafe one, block an
   untrusted doctor, resolve data conflicts by DAO vote, and prevent proof reuse."
+# Clear previous results so the Allure report shows ONLY this run (not accumulated history).
+rm -rf allure-results/* 2>/dev/null || true
 npx vitest run; CORR=$?
 
 banner "GROUP 2/3 — COST  (how expensive are the blockchain operations?)" \
