@@ -78,7 +78,7 @@ async function main() {
     // propose(bytes32): fresh hash each run so we never collide with an existing proposal.
     const hash = randHash();
     const pr = await txWait(nm0, () => gov0.propose(hash));
-    push('propose', run, pr.gasUsed);
+    push('propose', run, pr.gasUsed, { input: `policyHash=${hash}` });
 
     // Recover the exact proposal id from the Proposed event in this receipt.
     const ev = pr.logs
@@ -86,12 +86,12 @@ async function main() {
       .find((p) => p && p.name === 'Proposed');
     const id = ev.args.id;
     const vr = await txWait(nm1, () => gov1.vote(id));
-    push('vote', run, vr.gasUsed);
+    push('vote', run, vr.gasUsed, { input: `id=${id.toString()}` });
 
     // record(bytes32,bool): fresh stmtHash so we never hit the replay guard (409/revert).
     const stmtHash = randHash();
     const rr = await txWait(nm0, () => reg0.record(stmtHash, true));
-    push('record', run, rr.gasUsed);
+    push('record', run, rr.gasUsed, { input: `stmtHash=${stmtHash}, outcome=true` });
 
     if (run === 0) {
       example.propose = { policyHash: hash };

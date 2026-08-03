@@ -7,17 +7,17 @@
   "ethers": "6.17.0",
   "node": "v20.11.0",
   "runs": 10,
-  "at": "2026-08-03T15:33:33.518Z",
+  "at": "2026-08-03T15:36:15.962Z",
   "note": "Gas is deterministic — fixed by the contract bytecode + EVM rules, independent of the host machine.",
   "inputs": {
     "propose": {
-      "policyHash": "0xf0ba5aa831dc789bafa0a9e589746ee4abf4cb0618e054ff6f161ab0122d38ec"
+      "policyHash": "0x40378eb80b6b41380c3f35487b8a40bfd2f10696b5686dc79e6d9f3f6b29b07d"
     },
     "vote": {
-      "id": "56"
+      "id": "66"
     },
     "record": {
-      "stmtHash": "0x0c22280ae5e82ce404780a8af397520d3128b15b678d2781fb92b28bfdd5ad8d",
+      "stmtHash": "0xafb9f9295827df7685bbffcdf18e1db4c8e2ff24beaa1d2aa2cba1fbb7309843",
       "outcome": true
     }
   }

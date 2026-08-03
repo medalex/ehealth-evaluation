@@ -1,31 +1,31 @@
-op,run,gasUsed
-propose,0,79944
-vote,0,76987
-record,0,90974
-propose,1,79944
-vote,1,76987
-record,1,90962
-propose,2,79944
-vote,2,76987
-record,2,90974
-propose,3,79944
-vote,3,76987
-record,3,90974
-propose,4,79944
-vote,4,76987
-record,4,90974
-propose,5,79932
-vote,5,76987
-record,5,90974
-propose,6,79944
-vote,6,76987
-record,6,90962
-propose,7,79944
-vote,7,76987
-record,7,90974
-propose,8,79944
-vote,8,76987
-record,8,90974
-propose,9,79944
-vote,9,76987
-record,9,90974
+op,run,gasUsed,input
+propose,0,79944,policyHash=0x40378eb80b6b41380c3f35487b8a40bfd2f10696b5686dc79e6d9f3f6b29b07d
+vote,0,76987,id=66
+record,0,90974,"stmtHash=0xafb9f9295827df7685bbffcdf18e1db4c8e2ff24beaa1d2aa2cba1fbb7309843, outcome=true"
+propose,1,79944,policyHash=0xe17b6153a67b2bff13fed59bdb8951e3f24f0bab35e8f33e6d540a740876bb1a
+vote,1,76987,id=67
+record,1,90974,"stmtHash=0x387338c66a67b553daed7926e9d363dbb4442d9d0ea60fa568dc18eb567b4364, outcome=true"
+propose,2,79944,policyHash=0x5545780404c3ff672b8abc25c71aee28e75cbe3d734b9bc3757bf185f24ffe7d
+vote,2,76987,id=68
+record,2,90974,"stmtHash=0x1c59fea6acd99cc0a6a27794e991337ae05d2aebf5de5d34ad744723d8bdbed6, outcome=true"
+propose,3,79944,policyHash=0x3c437de26f7b6270cd37ced6bac5c4c0c0d4f9d50aa7236999683e5dc483fcde
+vote,3,76987,id=69
+record,3,90974,"stmtHash=0xfd4f6ce566695ad817786ceb1412ebd8b140b713b934dd3278b8c28bd657e8a0, outcome=true"
+propose,4,79944,policyHash=0x711d219581cf823cccb0178a0530a132a5c0d6835bbc01451ce54e8a3eb5dc81
+vote,4,76987,id=70
+record,4,90962,"stmtHash=0x9e19613b3b2e0f4987496edefa7361eb211b178531ef8b5644ba1800a0532d35, outcome=true"
+propose,5,79944,policyHash=0x8e6caabe29ce46dd739e81550b87873e406a58d958cccf9148c4401493a86aca
+vote,5,76987,id=71
+record,5,90974,"stmtHash=0xb5d3e29dc3562b50e3f0b48da88f589484c2a74a44e120a6b285b2def056b892, outcome=true"
+propose,6,79944,policyHash=0x2d32acd578898009276dbfef355f8716cd295f61ccbed7fdb8932321ca16b913
+vote,6,76987,id=72
+record,6,90974,"stmtHash=0x2b665e46b3f663fe932df1cab69a1c0f3e3eeb72a0874375db1812b9fa325026, outcome=true"
+propose,7,79944,policyHash=0xeb82489c6d5bc7677ce7ba8e7197a29ed718e266b9d45ad059f004e04294f3c2
+vote,7,76987,id=73
+record,7,90974,"stmtHash=0x2cc8dbdba2c5929e8a13b351f4d83adbc72b5e7c822bea34d2dc75ac7a5f0a28, outcome=true"
+propose,8,79932,policyHash=0x70f8fa603dd92670e03b7b5300d198588f559401380eb358c58a6b70afc3d0f6
+vote,8,76987,id=74
+record,8,90974,"stmtHash=0x17681a5f8f8f21649f9dacb793df629cc38150cd0f8a24f55cd4b635d50d6e90, outcome=true"
+propose,9,79944,policyHash=0x9918af04bb01ddc22892330f4a3377f61043d13055478ef6c8f428313f6add7c
+vote,9,76987,id=75
+record,9,90974,"stmtHash=0x58adce1d67b86aa24a18b8696cb7fee3f6726ca397d03033871a44bf92215ce1, outcome=true"

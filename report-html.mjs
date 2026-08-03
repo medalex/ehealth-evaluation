@@ -124,6 +124,17 @@ if (gas) {
     const call = `<code>${esc(GAS_SIG[op] ?? op)}</code>${inp ? `<div class="dim mono">called with: ${inp}</div>` : ''}`;
     return [`<b>${esc(op)}</b>`, `<code>${esc(GAS_CONTRACT[op] ?? '—')}</code>`, call, esc(GAS_WHAT[op] ?? ''), nfmt(Math.round(s.median)), nfmt(Math.round(s.p95)), s.n];
   });
+  // Per-run detail: every individual call, its exact input, and the gas it used.
+  const shortInputs = (s) => String(s ?? '').replace(/0x[0-9a-fA-F]{16,}/g, (h) => `${h.slice(0, 10)}…${h.slice(-6)}`);
+  const detailBlocks = ops.map((op) => {
+    const rs = gas.filter((r) => r.op === op);
+    const drows = rs.map((r) => [r.run, `<code class="mono">${esc(shortInputs(r.input))}</code>`, nfmt(r.gasUsed)]);
+    return `<h4 class="sub">${esc(op)} — ${rs.length} runs</h4>${table(['Run', 'Input the contract was called with', 'Gas used'], drows)}`;
+  }).join('');
+  const detailHtml = gas.some((r) => r.input)
+    ? `<details class="detail"><summary>Per-run detail — every call and its input (${gas.length} calls)</summary>${detailBlocks}</details>`
+    : '';
+
   // Measurement environment block.
   let envHtml = '';
   if (e) {
@@ -150,6 +161,7 @@ if (gas) {
       ${table(['Operation', 'Contract', 'Call &amp; example input', 'What it is', 'Typical gas', 'Worst case (p95)', 'runs'], rows)}
       <p class="note">The zero-knowledge <code>verifyProof</code> cost is <b>constant</b> no matter
       how complex the medical check is — a key property of the design.</p>
+      ${detailHtml}
       ${envHtml}`,
   });
 }
@@ -257,8 +269,11 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
   .panel { display: none; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 18px 22px; margin: 16px 0; }
   .panel.active { display: block; }
   h2 { font-size: 17px; margin: 0 0 12px; }
-  h3.sub { font-size: 14px; margin: 22px 0 8px; opacity: .85; }
+  h3.sub, h4.sub { font-size: 14px; margin: 20px 0 8px; opacity: .85; }
   table.kv th { width: 190px; white-space: nowrap; } table.kv td { width: auto; }
+  details.detail { margin: 16px 0 0; border: 1px solid #e5e7eb; border-radius: 8px; padding: 4px 14px; }
+  details.detail summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+  @media (prefers-color-scheme: dark) { details.detail { border-color: #2a2e36; } }
   .intro { font-size: 14px; background: #f4f2fd; border: 1px solid #e7e0fb; border-radius: 8px; padding: 12px 14px; margin: 0 0 16px; }
   .sum { font-weight: 600; margin: 0 0 12px; }
   .note { font-size: 13px; opacity: .78; margin: 12px 0 0; }
