@@ -7,7 +7,8 @@
   "scripts": {
     "eval:oneshot": "bash run-eval.sh",
     "test": "vitest run",
-    "report": "node report.mjs",
+    "report": "node report.mjs && node report-html.mjs",
+    "report:html": "node report-html.mjs",
     "report:allure": "allure generate allure-results --clean -o allure-report && allure open allure-report",
     "bench:correctness": "node bench-correctness/run.mjs",
     "bench:gas": "node bench-gas/bench-gas.mjs",

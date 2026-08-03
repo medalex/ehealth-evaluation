@@ -39,8 +39,10 @@ banner "GROUP 3/3 — SPEED  (how long does a real user actually wait?)" \
 node bench-e2e/bench-e2e.mjs || echo "   (skipped — needs a clean stack; continuing)"
 
 banner "REPORT  (writing the human-readable summary)" \
-       "Turns the raw CSVs into results/REPORT.md; render the Allure dashboard on the host."
+       "Turns the raw CSVs into results/REPORT.md + a tabbed results/report.html you can open
+  locally in a browser; render the Allure dashboard on the host."
 node report.mjs || true
+node report-html.mjs || true
 
 echo ""
 echo "────────────────────────────────────────────────────────────────────────"

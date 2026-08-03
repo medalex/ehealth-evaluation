@@ -16,7 +16,7 @@ COPY bench-gas ./bench-gas
 COPY bench-e2e ./bench-e2e
 COPY bench-dao ./bench-dao
 COPY config ./config
-COPY vitest.config.mjs report.mjs docker-entrypoint.sh ./
+COPY vitest.config.mjs report.mjs report-html.mjs docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

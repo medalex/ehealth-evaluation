@@ -138,8 +138,17 @@ Three views of the results, from richest to simplest:
   parameters; `BLOCKED`/`SKIP` show as *skipped* (precondition unmet / not applicable), not
   failed. The dockerized `run-e2e.sh` produces `allure-results/` on the host too — just run
   `npm run report:allure` afterwards.
-- **Markdown summary.** `npm run report` (`report.mjs`) turns `results/*.csv` into
-  `results/REPORT.md` — the correctness matrix + a gas median/p95 table. No deps.
+- **Local HTML dashboard** (no server, no internet, no GitHub). `npm run report` also writes a
+  self-contained **`results/report.html`** — tabbed by test type (Correctness · Gas ·
+  Speed · DAO · ZKP) with styled tables and status badges. Open it right on the machine that
+  ran the tests:
+  ```bash
+  open results/report.html        # macOS  (xdg-open on Linux)
+  ```
+  It is produced automatically at the end of a `run-e2e.sh` run; regenerate any time with
+  `npm run report:html`.
+- **Markdown summary.** `npm run report` also writes `results/REPORT.md` (renders on GitHub,
+  diff-friendly). No deps.
 - **Figures for LaTeX.** `python notebooks/plots.py` → `figures/*.{pdf,eps}`.
 
 Raw `results/*.csv` remain the primary committed data; the reports are derived views.

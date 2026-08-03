@@ -1,0 +1,62 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eHealth evaluation — results</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 15px/1.5 -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #f6f7f9; color: #1a1a1a; }
+  @media (prefers-color-scheme: dark) { body { background: #14161a; color: #e6e6e6; } .panel { background: #1e2127 !important; border-color: #2a2e36 !important; } th { background: #262a32 !important; } code { background: #262a32 !important; } tr:nth-child(even) td { background: #1a1d23 !important; } .tabs { background: #1e2127 !important; border-color: #2a2e36 !important; } .tab { color: #cbd2dc; } }
+  header { padding: 24px; background: linear-gradient(135deg,#3b5bdb,#7048e8); color: #fff; }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0; opacity: .85; font-size: 13px; }
+  main { max-width: 1000px; margin: 0 auto; padding: 0 16px 60px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; position: sticky; top: 0; background: #f6f7f9; padding: 12px 0; border-bottom: 1px solid #e5e7eb; z-index: 5; }
+  .tab { border: 1px solid transparent; background: transparent; color: #444; font: inherit; font-size: 14px; padding: 7px 14px; border-radius: 8px; cursor: pointer; }
+  .tab:hover { background: rgba(112,72,232,.1); }
+  .tab.active { background: #7048e8; color: #fff; }
+  .tbadge { font-size: 11px; opacity: .9; }
+  .panel { display: none; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 18px 20px; margin: 16px 0; }
+  .panel.active { display: block; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  .sum { font-weight: 600; margin: 0 0 12px; }
+  .note { font-size: 13px; opacity: .75; margin: 10px 0 0; }
+  .tw { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #eceef1; white-space: nowrap; }
+  th { background: #f2f4f7; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  code { background: #f2f4f7; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; }
+  .badge.pass, .badge.ok { background: #2f9e44; } .badge.fail, .badge.bad { background: #e03131; }
+  .badge.block, .badge.warn { background: #f08c00; } .badge.skip { background: #868e96; }
+</style></head>
+<body>
+<header><h1>eHealth prototype — evaluation results</h1>
+<p>Generated 8/3/2026, 6:17:35 PM · self-contained (open in any browser, no server)</p></header>
+<main>
+  <nav class="tabs"><button class="tab active" data-tab="correctness">Correctness <span class="tbadge">✓</span></button><button class="tab" data-tab="gas">Gas (cost)</button><button class="tab" data-tab="feasibility">Speed (feasibility)</button><button class="tab" data-tab="dao">DAO (k-of-n)</button><button class="tab" data-tab="pending">Pending</button></nav>
+  <section class="panel active" id="panel-correctness"><h2>Correctness — does the system do the right thing?</h2>
+      <p class="sum">6 passed · 0 failed · 0 blocked · 1 skipped</p>
+      <div class="tw"><table><thead><tr><th>#</th><th>Scenario</th><th>Result</th><th>Actual</th><th>Notes</th></tr></thead><tbody><tr><td><b>Sc1</b></td><td>valid prescription issued</td><td><span class="badge pass">PASS</span></td><td><code>201 outcome=true</code></td><td></td></tr><tr><td><b>Sc2</b></td><td>ZKP-rejected not issued</td><td><span class="badge pass">PASS</span></td><td><code>422 issued=false</code></td><td></td></tr><tr><td><b>Sc3</b></td><td>access gate blocks unregistered doctor</td><td><span class="badge pass">PASS</span></td><td><code>403</code></td><td></td></tr><tr><td><b>Sc4</b></td><td>numeric bridge needs DAO consensus</td><td><span class="badge pass">PASS</span></td><td><code>proposal=23 gate403=true approved=true</code></td><td></td></tr><tr><td><b>Sc5</b></td><td>terminology alignment needs DAO consensus</td><td><span class="badge pass">PASS</span></td><td><code>conflict=true gate403=true approved=true</code></td><td></td></tr><tr><td><b>Sc6</b></td><td>proof freshness / validity window</td><td><span class="badge skip">SKIP</span></td><td><code>SKIPPED</code></td><td>timed setup — validated manually per README Scenario 6</td></tr><tr><td><b>Sc7</b></td><td>replay single-use</td><td><span class="badge pass">PASS</span></td><td><code>v1=true v2=false</code></td><td></td></tr></tbody></table></div></section>
+<section class="panel" id="panel-gas"><h2>On-chain gas — how expensive are the blockchain ops?</h2>
+      <div class="tw"><table><thead><tr><th>Operation</th><th>n</th><th>median</th><th>p95</th><th>min</th><th>max</th></tr></thead><tbody><tr><td><b>propose</b></td><td>20</td><td>79,944</td><td>79,944</td><td>79,932</td><td>79,944</td></tr><tr><td><b>vote</b></td><td>20</td><td>76,987</td><td>76,987</td><td>76,987</td><td>76,987</td></tr><tr><td><b>record</b></td><td>20</td><td>90,974</td><td>90,974</td><td>90,962</td><td>90,974</td></tr></tbody></table></div>
+      <p class="note">Groth16 <code>verifyProof</code> is expected to be constant regardless of circuit size.</p></section>
+<section class="panel" id="panel-feasibility"><h2>End-user feasibility — how long does a real user wait?</h2>
+      <div class="tw"><table><thead><tr><th>User action</th><th>runs</th><th>median</th><th>p95</th><th>verdict (Nielsen)</th></tr></thead><tbody><tr><td>Clinician: issue prescription</td><td>15</td><td>1964 ms</td><td>2271 ms</td><td><span class="badge warn">acceptable (&lt;10s)</span></td></tr><tr><td>Pharmacist: verify + dispense</td><td>15</td><td>977 ms</td><td>1029 ms</td><td><span class="badge ok">fluid (&lt;1s)</span></td></tr></tbody></table></div><p class="note">Contribution slice — on-chain Groth16 verification: <b>343 ms</b> (17.5% of issuance), constant (O(1)).</p>
+      <p class="note">Supplementary metric; the ZKP/gas contribution is measured in isolation in the other tabs.</p></section>
+<section class="panel" id="panel-dao"><h2>k-of-n governance cost — resolving a conflict on-chain</h2>
+      <div class="tw"><table><thead><tr><th>members</th><th>quorum</th><th>deploy gas</th><th>resolution gas</th><th>median vote gas</th><th>votes</th><th>wall-clock</th></tr></thead><tbody><tr><td>3</td><td>2</td><td>937,792</td><td>265,014</td><td>77,574</td><td>2</td><td>521 ms</td></tr><tr><td>4</td><td>3</td><td>961,087</td><td>325,500</td><td>77,574</td><td>3</td><td>722 ms</td></tr><tr><td>5</td><td>3</td><td>984,382</td><td>325,500</td><td>77,574</td><td>3</td><td>758 ms</td></tr><tr><td>6</td><td>4</td><td>1,007,677</td><td>385,974</td><td>60,474</td><td>4</td><td>910 ms</td></tr><tr><td>7</td><td>5</td><td>1,030,972</td><td>446,448</td><td>60,474</td><td>5</td><td>1062 ms</td></tr></tbody></table></div></section>
+<section class="panel" id="panel-pending"><h2>Not yet produced</h2><p class="note">Run the matching bench to fill these in:</p>
+      <ul><li><code>zkp-scaling.csv</code> — ZKP — <code>npm run bench:zkp</code></li></ul></section>
+</main>
+<script>
+  document.querySelectorAll('.tab').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active');
+      var p = document.getElementById('panel-' + b.dataset.tab);
+      if (p) p.classList.add('active');
+    });
+  });
+</script>
+</body></html>
