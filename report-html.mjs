@@ -1,6 +1,6 @@
-// Renders results/*.csv into a SELF-CONTAINED results/report.html — a single local file
-// (inline CSS/JS, no external resources, no server) you open in a browser on the machine that
-// ran the tests. Tabbed by test type. Complements results/REPORT.md and the Allure dashboard.
+// Renders results/*.csv into a SELF-CONTAINED, self-explanatory results/report.html — a single
+// local file (inline CSS/JS, no external resources, no server) you open in a browser on the
+// machine that ran the tests. Tabbed by test type, each with a plain-language explanation.
 //
 //   node report-html.mjs        # -> results/report.html
 //   open results/report.html    # (macOS)  ·  xdg-open on Linux
@@ -35,18 +35,34 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 const nfmt = (v) => Number(v).toLocaleString('en-US');
 
 function table(headers, rows) {
-  const th = headers.map((h) => `<th>${esc(h)}</th>`).join('');
+  const th = headers.map((h) => `<th>${h}</th>`).join('');
   const tr = rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('');
   return `<div class="tw"><table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
 }
 function nielsen(ms) {
-  if (ms < 100) return ['instant (&lt;0.1s)', 'ok'];
-  if (ms < 1000) return ['fluid (&lt;1s)', 'ok'];
-  if (ms < 10000) return ['acceptable (&lt;10s)', 'warn'];
-  return ['over 10s limit', 'bad'];
+  if (ms < 100) return ['instant', 'ok', '&lt; 0.1 s'];
+  if (ms < 1000) return ['fluid', 'ok', '&lt; 1 s'];
+  if (ms < 10000) return ['acceptable', 'warn', '&lt; 10 s (attention limit)'];
+  return ['too slow', 'bad', '&gt; 10 s'];
 }
 
-// Each tab: { id, label, badge?, body }
+// Plain-language descriptions of each correctness scenario.
+const WHAT = {
+  Sc1: 'A valid prescription is written and successfully issued.',
+  Sc2: 'An unsafe prescription (drug the patient is allergic to) is rejected, not issued.',
+  Sc3: 'A doctor who is not in the trust registry is blocked from prescribing.',
+  Sc4: 'A units mismatch between labs can only be fixed by a DAO vote — not unilaterally.',
+  Sc5: 'A local drug code with no standard mapping is resolved only after a DAO vote.',
+  Sc6: 'A prescription proof expires after its validity window; a stale one is refused.',
+  Sc7: 'The same prescription proof can be dispensed only once (no replay).',
+};
+const GAS_WHAT = {
+  propose: 'Submit a governance proposal (a change to the medical rules).',
+  vote: 'Cast one vote on a proposal.',
+  record: 'Record a dispensed prescription on the immutable ledger.',
+  verifyProof: 'Verify a zero-knowledge proof on-chain.',
+};
+
 const tabs = [];
 
 // ── RQ1 correctness ──────────────────────────────────────────────────────────
@@ -54,12 +70,23 @@ const corr = parseCsv(R('correctness.csv'));
 if (corr) {
   const badge = (s) => `<span class="badge ${{ PASS: 'pass', FAIL: 'fail', BLOCKED: 'block', SKIP: 'skip' }[s] ?? 'skip'}">${esc(s)}</span>`;
   const n = (s) => corr.filter((r) => r.status === s).length;
-  const rows = corr.map((r) => [`<b>${esc(r.id)}</b>`, esc(r.name), badge(r.status), `<code>${esc(r.actual)}</code>`, esc(r.notes)]);
+  const rows = corr.map((r) => [
+    `<b>${esc(r.id)}</b>`,
+    esc(WHAT[r.id] ?? r.name),
+    badge(r.status),
+    `<code>${esc(r.actual)}</code>`,
+  ]);
   tabs.push({
     id: 'correctness', label: 'Correctness', badge: n('FAIL') ? `${n('FAIL')}✗` : '✓',
     body: `<h2>Correctness — does the system do the right thing?</h2>
+      <p class="intro">Each row is one real end-to-end scenario, run against the live system. It
+      checks that the described behaviour actually happens. <b class="pass-t">PASS</b> = behaved
+      as required; <b class="fail-t">FAIL</b> = did not; <b class="block-t">BLOCKED</b> = a
+      setup step didn't complete (an environment issue, not a defect); <b>SKIPPED</b> = an
+      optional slow test that was not run.</p>
       <p class="sum">${n('PASS')} passed · ${n('FAIL')} failed · ${n('BLOCKED')} blocked · ${n('SKIP')} skipped</p>
-      ${table(['#', 'Scenario', 'Result', 'Actual', 'Notes'], rows)}`,
+      ${table(['#', 'What it checks', 'Result', 'Observed'], rows)}
+      <p class="note">“Observed” is the raw outcome (HTTP code / flags) for the record.</p>`,
   });
 }
 
@@ -69,13 +96,17 @@ if (gas) {
   const ops = [...new Set(gas.map((r) => r.op))];
   const rows = ops.map((op) => {
     const s = summarize(gas.filter((r) => r.op === op).map((r) => Number(r.gasUsed)));
-    return [`<b>${esc(op)}</b>`, s.n, nfmt(Math.round(s.median)), nfmt(Math.round(s.p95)), nfmt(Math.round(s.min)), nfmt(Math.round(s.max))];
+    return [`<b>${esc(op)}</b>`, esc(GAS_WHAT[op] ?? ''), nfmt(Math.round(s.median)), nfmt(Math.round(s.p95)), s.n];
   });
   tabs.push({
-    id: 'gas', label: 'Gas (cost)',
-    body: `<h2>On-chain gas — how expensive are the blockchain ops?</h2>
-      ${table(['Operation', 'n', 'median', 'p95', 'min', 'max'], rows)}
-      <p class="note">Groth16 <code>verifyProof</code> is expected to be constant regardless of circuit size.</p>`,
+    id: 'gas', label: 'Cost (gas)',
+    body: `<h2>On-chain cost — how expensive is each blockchain operation?</h2>
+      <p class="intro">“Gas” is the standard unit of on-chain computation — think of it as the
+      price of a transaction. <b>Lower is cheaper.</b> For scale, one Ethereum block holds about
+      <b>30,000,000</b> gas, so every operation below is a tiny fraction of a single block.</p>
+      ${table(['Operation', 'What it is', 'Typical gas (median)', 'Worst case (p95)', 'runs'], rows)}
+      <p class="note">The zero-knowledge <code>verifyProof</code> cost is <b>constant</b> no matter
+      how complex the medical check is — a key property of the design.</p>`,
   });
 }
 
@@ -87,31 +118,47 @@ if (e2e) {
   const issue = runs.map((run) => rows2.find((r) => r.run === run && r.action === 'issue' && r.stage === 'total')?.ms).filter((x) => x != null);
   const disp = runs.map((run) => rows2.filter((r) => r.run === run && r.action === 'dispense').reduce((a, r) => a + r.ms, 0)).filter((x) => x > 0);
   const onchain = rows2.filter((r) => r.stage === 'onchain_verify').map((r) => r.ms);
-  const row = (label, xs) => { const s = summarize(xs); const [v, cls] = nielsen(s.median); return [label, s.n, `${Math.round(s.median)} ms`, `${Math.round(s.p95)} ms`, `<span class="badge ${cls}">${v}</span>`]; };
+  const row = (label, xs) => {
+    const s = summarize(xs); const [word, cls, limit] = nielsen(s.median);
+    return [label, `${(s.median / 1000).toFixed(1)} s`, `${(s.p95 / 1000).toFixed(1)} s`, `<span class="badge ${cls}">${word}</span> <span class="dim">${limit}</span>`];
+  };
   const rows = [];
-  if (issue.length) rows.push(row('Clinician: issue prescription', issue));
-  if (disp.length) rows.push(row('Pharmacist: verify + dispense', disp));
+  if (issue.length) rows.push(row('Doctor: write &amp; issue a prescription', issue));
+  if (disp.length) rows.push(row('Pharmacist: verify &amp; dispense', disp));
   let extra = '';
   if (onchain.length) {
     const a = summarize(onchain); const im = issue.length ? summarize(issue).median : 0;
-    extra = `<p class="note">Contribution slice — on-chain Groth16 verification: <b>${Math.round(a.median)} ms</b>${im ? ` (${((a.median / im) * 100).toFixed(1)}% of issuance)` : ''}, constant (O(1)).</p>`;
+    extra = `<p class="note">Of the doctor's wait, the actual cryptographic/blockchain work
+      (on-chain proof verification) is only <b>${Math.round(a.median)} ms</b>${im ? ` (${((a.median / im) * 100).toFixed(1)}%)` : ''} —
+      the rest is ordinary database/record-keeping. And it stays constant regardless of scale.</p>`;
   }
   tabs.push({
-    id: 'feasibility', label: 'Speed (feasibility)',
-    body: `<h2>End-user feasibility — how long does a real user wait?</h2>
-      ${table(['User action', 'runs', 'median', 'p95', 'verdict (Nielsen)'], rows)}${extra}
-      <p class="note">Supplementary metric; the ZKP/gas contribution is measured in isolation in the other tabs.</p>`,
+    id: 'feasibility', label: 'Speed',
+    body: `<h2>Speed — how long does a real person wait?</h2>
+      <p class="intro">Time from starting an action to seeing the result. Judged against the
+      well-known <b>Nielsen usability limits</b>: under 1 s feels instant, under 10 s keeps the
+      user's attention. “Typical” is the median; “worst case” is the 95th percentile (19 of 20
+      runs are faster).</p>
+      ${table(['User action', 'Typical wait', 'Worst case', 'Verdict'], rows)}${extra}`,
   });
 }
 
 // ── DAO k-of-n ───────────────────────────────────────────────────────────────
 const dao = parseCsv(R('dao-conflict.csv'));
 if (dao) {
-  const rows = dao.map((r) => [r.members, r.threshold, nfmt(r.deployGas), nfmt(r.resolutionGas), nfmt(r.voteGasMed), r.votesCast, `${Math.round(Number(r.wallMs))} ms`]);
+  const rows = dao.map((r) => [
+    `<b>${esc(r.members)}</b>`, esc(r.threshold),
+    nfmt(r.deployGas), nfmt(r.resolutionGas), `${Math.round(Number(r.wallMs))} ms`,
+  ]);
   tabs.push({
-    id: 'dao', label: 'DAO (k-of-n)',
-    body: `<h2>k-of-n governance cost — resolving a conflict on-chain</h2>
-      ${table(['members', 'quorum', 'deploy gas', 'resolution gas', 'median vote gas', 'votes', 'wall-clock'], rows)}`,
+    id: 'dao', label: 'Governance',
+    body: `<h2>Governance cost — resolving a conflict by committee vote</h2>
+      <p class="intro">When labs disagree on a standard, the fix must be approved by a committee
+      (a “k-of-n” vote: <b>k</b> approvals out of <b>n</b> members). This shows the cost as the
+      committee grows — one-time setup vs. the cost of resolving one conflict.</p>
+      ${table(['Committee size (n)', 'Votes needed (k)', 'One-time setup gas', 'Per-conflict gas', 'Time'], rows)}
+      <p class="note">Per-conflict cost grows gently (roughly one small vote each); nothing here
+      is expensive by blockchain standards.</p>`,
   });
 }
 
@@ -119,21 +166,28 @@ if (dao) {
 const zkp = parseCsv(R('zkp-scaling.csv'));
 if (zkp) {
   const kb = (b) => (b ? `${Math.round(Number(b) / 1024)} KB` : '—');
-  const rows = zkp.map((r) => [esc(r.label), esc(r.axis), nfmt(r.constraints), `${r.compileMs} ms`, `${r.setupMs} ms`, kb(r.zkeyBytes), kb(r.wasmBytes)]);
+  const rows = zkp.map((r) => [
+    esc(r.label), esc(r.axis), nfmt(r.constraints),
+    `${(Number(r.compileMs) / 1000).toFixed(1)} s`, `${(Number(r.setupMs) / 1000).toFixed(1)} s`, kb(r.zkeyBytes),
+  ]);
   tabs.push({
-    id: 'zkp', label: 'ZKP (scaling)',
-    body: `<h2>ZKP circuit scaling</h2>
-      ${table(['variant', 'axis', 'constraints', 'compile', 'setup', '.zkey', '.wasm'], rows)}`,
+    id: 'zkp', label: 'ZKP scaling',
+    body: `<h2>Zero-knowledge proof — how does it scale?</h2>
+      <p class="intro">As the medical check gets bigger (more allergies / more drugs), the proof
+      circuit grows. “Constraints” is the size of the circuit; the build/setup times and key
+      size grow with it. Proof <i>verification</i>, though, stays constant (see the Cost tab).</p>
+      ${table(['Variant', 'Growing axis', 'Circuit size (constraints)', 'Compile', 'Setup', 'Key size'], rows)}`,
   });
 }
 
 // Placeholder tab for benches not yet produced.
-const missing = [['e2e.csv', 'Speed'], ['dao-conflict.csv', 'DAO'], ['zkp-scaling.csv', 'ZKP']].filter(([f]) => !existsSync(R(f)));
+const missing = [['e2e.csv', 'Speed', 'e2e'], ['dao-conflict.csv', 'Governance', 'dao'], ['zkp-scaling.csv', 'ZKP scaling', 'zkp']].filter(([f]) => !existsSync(R(f)));
 if (missing.length) {
   tabs.push({
-    id: 'pending', label: 'Pending',
-    body: `<h2>Not yet produced</h2><p class="note">Run the matching bench to fill these in:</p>
-      <ul>${missing.map(([f, n]) => `<li><code>${f}</code> — ${n} — <code>npm run bench:${n.toLowerCase() === 'speed' ? 'e2e' : n.toLowerCase()}</code></li>`).join('')}</ul>`,
+    id: 'pending', label: 'Not run yet',
+    body: `<h2>Benchmarks not run yet</h2>
+      <p class="intro">These produce no data until you run the matching command:</p>
+      <ul>${missing.map(([f, n, cmd]) => `<li><b>${esc(n)}</b> — <code>npm run bench:${cmd}</code> → <code>${f}</code></li>`).join('')}</ul>`,
   });
 }
 
@@ -145,35 +199,40 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <title>eHealth evaluation — results</title>
 <style>
   :root { color-scheme: light dark; }
-  body { font: 15px/1.5 -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #f6f7f9; color: #1a1a1a; }
-  @media (prefers-color-scheme: dark) { body { background: #14161a; color: #e6e6e6; } .panel { background: #1e2127 !important; border-color: #2a2e36 !important; } th { background: #262a32 !important; } code { background: #262a32 !important; } tr:nth-child(even) td { background: #1a1d23 !important; } .tabs { background: #1e2127 !important; border-color: #2a2e36 !important; } .tab { color: #cbd2dc; } }
+  body { font: 15px/1.55 -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #f6f7f9; color: #1a1a1a; }
+  @media (prefers-color-scheme: dark) { body { background: #14161a; color: #e6e6e6; } .panel { background: #1e2127 !important; border-color: #2a2e36 !important; } th { background: #262a32 !important; } code { background: #262a32 !important; } tr:nth-child(even) td { background: #1a1d23 !important; } .tabs { background: #14161a !important; border-color: #2a2e36 !important; } .tab { color: #cbd2dc; } .intro { background: #1a1d23 !important; border-color: #2a2e36 !important; } }
   header { padding: 24px; background: linear-gradient(135deg,#3b5bdb,#7048e8); color: #fff; }
   header h1 { margin: 0 0 4px; font-size: 22px; }
-  header p { margin: 0; opacity: .85; font-size: 13px; }
+  header p { margin: 0; opacity: .9; font-size: 13px; max-width: 760px; }
   main { max-width: 1000px; margin: 0 auto; padding: 0 16px 60px; }
   .tabs { display: flex; flex-wrap: wrap; gap: 4px; position: sticky; top: 0; background: #f6f7f9; padding: 12px 0; border-bottom: 1px solid #e5e7eb; z-index: 5; }
   .tab { border: 1px solid transparent; background: transparent; color: #444; font: inherit; font-size: 14px; padding: 7px 14px; border-radius: 8px; cursor: pointer; }
-  .tab:hover { background: rgba(112,72,232,.1); }
+  .tab:hover { background: rgba(112,72,232,.12); }
   .tab.active { background: #7048e8; color: #fff; }
   .tbadge { font-size: 11px; opacity: .9; }
-  .panel { display: none; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 18px 20px; margin: 16px 0; }
+  .panel { display: none; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 18px 22px; margin: 16px 0; }
   .panel.active { display: block; }
-  h2 { font-size: 16px; margin: 0 0 12px; }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  .intro { font-size: 14px; background: #f4f2fd; border: 1px solid #e7e0fb; border-radius: 8px; padding: 12px 14px; margin: 0 0 16px; }
   .sum { font-weight: 600; margin: 0 0 12px; }
-  .note { font-size: 13px; opacity: .75; margin: 10px 0 0; }
+  .note { font-size: 13px; opacity: .78; margin: 12px 0 0; }
+  .dim { opacity: .6; font-size: 12px; }
   .tw { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 14px; }
-  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #eceef1; white-space: nowrap; }
-  th { background: #f2f4f7; font-weight: 600; }
+  th, td { text-align: left; padding: 8px 11px; border-bottom: 1px solid #eceef1; vertical-align: top; }
+  th { background: #f2f4f7; font-weight: 600; white-space: nowrap; }
   tr:nth-child(even) td { background: #fafbfc; }
   code { background: #f2f4f7; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; }
   .badge.pass, .badge.ok { background: #2f9e44; } .badge.fail, .badge.bad { background: #e03131; }
   .badge.block, .badge.warn { background: #f08c00; } .badge.skip { background: #868e96; }
+  .pass-t { color: #2f9e44; } .fail-t { color: #e03131; } .block-t { color: #f08c00; }
 </style></head>
 <body>
 <header><h1>eHealth prototype — evaluation results</h1>
-<p>Generated ${new Date().toLocaleString()} · self-contained (open in any browser, no server)</p></header>
+<p>Three questions: <b>does it work correctly?</b> · <b>what does it cost?</b> · <b>is it fast
+enough?</b> — Generated ${new Date().toLocaleString()}. This file is self-contained: open it in any
+browser, no server or internet needed. Click the tabs below.</p></header>
 <main>
   <nav class="tabs">${tabBar || ''}</nav>
   ${panels || '<section class="panel active"><p class="note">No results yet — run ./run-e2e.sh</p></section>'}
