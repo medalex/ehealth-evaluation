@@ -52,8 +52,13 @@ async function publishOne(i) {
   return res.ok;
 }
 
+const WARMUP = Number(process.env.WARMUP ?? 3);
+
 async function measure() {
   const count = await policyCount();
+  // Discard warm-up queries so cold-start / connection / cache effects don't skew the first
+  // checkpoint (otherwise latency appears to *drop* as the stack warms up, not as a scaling).
+  for (let i = 0; i < WARMUP; i++) await timeQuery();
   const samples = [];
   for (let i = 0; i < SAMPLES; i++) samples.push(await timeQuery());
   const s = summarize(samples);

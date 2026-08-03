@@ -247,7 +247,10 @@ if (pol) {
       knowledge graph at issuance time. This measures how long that <code>GET /policies</code>
       query takes as more policies are stored — the “number of policies” axis the other tabs
       don't cover. Flat is good (adding rules doesn't slow the system down).</p>
-      ${table(['Policies in the graph', 'Query time (median)', 'Worst case (p95)', 'samples'], rows)}`,
+      ${table(['Policies in the graph', 'Query time (median)', 'Worst case (p95)', 'samples'], rows)}
+      <p class="note">Warm-up queries are discarded before timing. The latency is dominated by
+      fixed overhead (HTTP + SPARQL setup + DKG call), so over a small range it stays flat —
+      the per-policy cost is negligible next to that overhead.</p>`,
   });
 }
 
