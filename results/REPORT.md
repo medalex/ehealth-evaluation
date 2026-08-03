@@ -1,6 +1,6 @@
 # Evaluation report
 
-Generated 2026-08-03T20:31:55.891Z
+Generated 2026-08-03T22:29:56.870Z
 
 ## RQ1 — Correctness
 
@@ -63,9 +63,10 @@ How long the prover's `GET /policies` (SPARQL over the DKG) takes as the policy 
 
 | policies in graph | query median | p95 | samples |
 |-------------------|--------------|-----|---------|
-| 1 | 32.2 ms | 32.5 ms | 5 |
-| 5 | 24.9 ms | 30.6 ms | 5 |
-| 9 | 22.5 ms | 22.6 ms | 5 |
+| 9 | 24.7 ms | 39.2 ms | 10 |
+| 19 | 22.4 ms | 24.9 ms | 10 |
+| 29 | 24.2 ms | 27.1 ms | 10 |
+| 39 | 25.5 ms | 27.6 ms | 10 |
 
 ---
 _Not yet produced: zkp-scaling.csv (benches pending)._

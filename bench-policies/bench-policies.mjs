@@ -26,11 +26,18 @@ const ANCHOR_TIMEOUT_MS = Number(process.env.ANCHOR_TIMEOUT_MS ?? 120000);
 const uid = () => Number(String(Date.now()).slice(-9)) + Math.floor(Math.random() * 1000);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function policyCount() {
+async function policyCountOnce() {
   const res = await fetch(`${cfg.mfssiaApi}/rx-governance/policies`);
   const b = await res.json().catch(() => ({}));
   const list = b?.data?.data ?? b?.data ?? [];
   return Array.isArray(list) ? list.length : 0;
+}
+// The DKG SPARQL query can transiently return empty under finality backlog; take the max of a
+// few reads so a momentary glitch doesn't record a bogus count of 0.
+async function policyCount() {
+  let max = 0;
+  for (let i = 0; i < 3; i++) { max = Math.max(max, await policyCountOnce()); if (i < 2) await sleep(500); }
+  return max;
 }
 
 async function timeQuery() {
@@ -96,6 +103,12 @@ async function main() {
     const anchored = await waitForCount(before + ok);
     if (!anchored) console.warn(`[policies]   only ${await policyCount()} of ${before + ok} queryable within timeout — recording actual`);
     const m = await measure();
+    // Skip a checkpoint whose count regressed (finality stalled / DKG glitch) — not a valid point.
+    const lastCount = rows.length ? Number(rows[rows.length - 1].policyCount) : 0;
+    if (m.policyCount < lastCount || m.policyCount === 0) {
+      console.warn(`[policies]   skipping checkpoint — count regressed to ${m.policyCount} (was ${lastCount}); DKG likely backlogged`);
+      break;
+    }
     console.log(`[policies]   count=${m.policyCount} queryMedian=${m.queryMedianMs}ms`);
     rows.push(m);
   }
