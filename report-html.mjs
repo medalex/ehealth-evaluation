@@ -98,6 +98,23 @@ if (gas) {
     const s = summarize(gas.filter((r) => r.op === op).map((r) => Number(r.gasUsed)));
     return [`<b>${esc(op)}</b>`, esc(GAS_WHAT[op] ?? ''), nfmt(Math.round(s.median)), nfmt(Math.round(s.p95)), s.n];
   });
+  // Measurement environment (written by bench-gas as results/gas-env.json).
+  let envHtml = '';
+  try {
+    const e = JSON.parse(readFileSync(R('gas-env.json'), 'utf8'));
+    const envRows = [
+      ['Chain', `${esc(e.chain)} (chainId ${esc(e.chainId)})`],
+      ['EVM client', esc(e.client)],
+      ['Solidity compiler', `solc ${esc(e.solc)}`],
+      ['Contracts', esc(e.contracts)],
+      ['Tooling', `ethers ${esc(e.ethers)} · Node ${esc(e.node)}`],
+      ['Runs per operation', esc(e.runs)],
+      ['Measured at', esc(new Date(e.at).toLocaleString())],
+    ];
+    envHtml = `<h3 class="sub">Test environment</h3>
+      <div class="tw"><table class="kv">${envRows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table></div>
+      <p class="note">${esc(e.note)}</p>`;
+  } catch { /* no env file */ }
   tabs.push({
     id: 'gas', label: 'Cost (gas)',
     body: `<h2>On-chain cost — how expensive is each blockchain operation?</h2>
@@ -106,7 +123,8 @@ if (gas) {
       <b>30,000,000</b> gas, so every operation below is a tiny fraction of a single block.</p>
       ${table(['Operation', 'What it is', 'Typical gas (median)', 'Worst case (p95)', 'runs'], rows)}
       <p class="note">The zero-knowledge <code>verifyProof</code> cost is <b>constant</b> no matter
-      how complex the medical check is — a key property of the design.</p>`,
+      how complex the medical check is — a key property of the design.</p>
+      ${envHtml}`,
   });
 }
 
@@ -213,6 +231,8 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
   .panel { display: none; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 18px 22px; margin: 16px 0; }
   .panel.active { display: block; }
   h2 { font-size: 17px; margin: 0 0 12px; }
+  h3.sub { font-size: 14px; margin: 22px 0 8px; opacity: .85; }
+  table.kv th { width: 190px; white-space: nowrap; } table.kv td { width: auto; }
   .intro { font-size: 14px; background: #f4f2fd; border: 1px solid #e7e0fb; border-radius: 8px; padding: 12px 14px; margin: 0 0 16px; }
   .sum { font-weight: 600; margin: 0 0 12px; }
   .note { font-size: 13px; opacity: .78; margin: 12px 0 0; }

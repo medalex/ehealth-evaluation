@@ -1,0 +1,12 @@
+{
+  "chain": "dedicated local EVM (ehealth-evm)",
+  "chainId": 31338,
+  "client": "Ganache/v7.9.2/EthereumJS TestRPC/v7.9.2/ethereum-js",
+  "solc": "0.8.26",
+  "contracts": "MinimalGovernance, DecisionRegistry, Groth16Verifier",
+  "ethers": "6.17.0",
+  "node": "v20.11.0",
+  "runs": 10,
+  "at": "2026-08-03T15:26:30.394Z",
+  "note": "Gas is deterministic — fixed by the contract bytecode + EVM rules, independent of the host machine."
+}

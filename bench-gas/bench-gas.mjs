@@ -14,7 +14,7 @@
 // The headline DSR result is that this figure is CONSTANT regardless of circuit size.
 
 import { ethers } from 'ethers';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { loadConfig, fetchAddresses, provider, memberSigner, ABI, randHash } from '../lib/rpc.mjs';
@@ -28,6 +28,22 @@ async function main() {
   const prov = provider(cfg.evmRpc);
   const addr = await fetchAddresses(cfg.evmApi);
   console.log(`[gas] governance=${addr.governance} registry=${addr.registry} verifier=${addr.verifier} chainId=${addr.chainId}`);
+
+  // Capture the measurement environment (gas depends on the EVM/compiler, not the host).
+  let client = '';
+  try { client = await prov.send('web3_clientVersion', []); } catch { /* ignore */ }
+  const env = {
+    chain: 'dedicated local EVM (ehealth-evm)',
+    chainId: addr.chainId,
+    client: client || 'ganache',
+    solc: '0.8.26',
+    contracts: 'MinimalGovernance, DecisionRegistry, Groth16Verifier',
+    ethers: ethers.version,
+    node: process.version,
+    runs: RUNS,
+    at: new Date().toISOString(),
+    note: 'Gas is deterministic — fixed by the contract bytecode + EVM rules, independent of the host machine.',
+  };
 
   const m0 = memberSigner(cfg.mnemonic, 0, prov);
   const m1 = memberSigner(cfg.mnemonic, 1, prov);
@@ -95,6 +111,7 @@ async function main() {
   }
 
   writeCsv(join(__dir, '..', 'results', 'gas.csv'), rows);
+  writeFileSync(join(__dir, '..', 'results', 'gas-env.json'), JSON.stringify(env, null, 2));
   console.log('[gas] done.');
 }
 
