@@ -62,6 +62,13 @@ const GAS_WHAT = {
   record: 'Record a dispensed prescription on the immutable ledger.',
   verifyProof: 'Verify a zero-knowledge proof on-chain.',
 };
+// Which smart contract each operation belongs to.
+const GAS_CONTRACT = {
+  propose: 'MinimalGovernance.sol',
+  vote: 'MinimalGovernance.sol',
+  record: 'DecisionRegistry.sol',
+  verifyProof: 'Groth16Verifier.sol',
+};
 
 const tabs = [];
 
@@ -96,7 +103,7 @@ if (gas) {
   const ops = [...new Set(gas.map((r) => r.op))];
   const rows = ops.map((op) => {
     const s = summarize(gas.filter((r) => r.op === op).map((r) => Number(r.gasUsed)));
-    return [`<b>${esc(op)}</b>`, esc(GAS_WHAT[op] ?? ''), nfmt(Math.round(s.median)), nfmt(Math.round(s.p95)), s.n];
+    return [`<b>${esc(op)}</b>`, `<code>${esc(GAS_CONTRACT[op] ?? '—')}</code>`, esc(GAS_WHAT[op] ?? ''), nfmt(Math.round(s.median)), nfmt(Math.round(s.p95)), s.n];
   });
   // Measurement environment (written by bench-gas as results/gas-env.json).
   let envHtml = '';
@@ -121,7 +128,7 @@ if (gas) {
       <p class="intro">“Gas” is the standard unit of on-chain computation — think of it as the
       price of a transaction. <b>Lower is cheaper.</b> For scale, one Ethereum block holds about
       <b>30,000,000</b> gas, so every operation below is a tiny fraction of a single block.</p>
-      ${table(['Operation', 'What it is', 'Typical gas (median)', 'Worst case (p95)', 'runs'], rows)}
+      ${table(['Operation', 'Contract', 'What it is', 'Typical gas (median)', 'Worst case (p95)', 'runs'], rows)}
       <p class="note">The zero-knowledge <code>verifyProof</code> cost is <b>constant</b> no matter
       how complex the medical check is — a key property of the design.</p>
       ${envHtml}`,

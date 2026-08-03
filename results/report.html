@@ -37,7 +37,7 @@
 <body>
 <header><h1>eHealth prototype — evaluation results</h1>
 <p>Three questions: <b>does it work correctly?</b> · <b>what does it cost?</b> · <b>is it fast
-enough?</b> — Generated 8/3/2026, 6:26:35 PM. This file is self-contained: open it in any
+enough?</b> — Generated 8/3/2026, 6:30:42 PM. This file is self-contained: open it in any
 browser, no server or internet needed. Click the tabs below.</p></header>
 <main>
   <nav class="tabs"><button class="tab active" data-tab="correctness">Correctness <span class="tbadge">✓</span></button><button class="tab" data-tab="gas">Cost (gas)</button><button class="tab" data-tab="feasibility">Speed</button><button class="tab" data-tab="dao">Governance</button><button class="tab" data-tab="pending">Not run yet</button></nav>
@@ -54,7 +54,7 @@ browser, no server or internet needed. Click the tabs below.</p></header>
       <p class="intro">“Gas” is the standard unit of on-chain computation — think of it as the
       price of a transaction. <b>Lower is cheaper.</b> For scale, one Ethereum block holds about
       <b>30,000,000</b> gas, so every operation below is a tiny fraction of a single block.</p>
-      <div class="tw"><table><thead><tr><th>Operation</th><th>What it is</th><th>Typical gas (median)</th><th>Worst case (p95)</th><th>runs</th></tr></thead><tbody><tr><td><b>propose</b></td><td>Submit a governance proposal (a change to the medical rules).</td><td>79,944</td><td>79,944</td><td>10</td></tr><tr><td><b>vote</b></td><td>Cast one vote on a proposal.</td><td>76,987</td><td>76,987</td><td>10</td></tr><tr><td><b>record</b></td><td>Record a dispensed prescription on the immutable ledger.</td><td>90,974</td><td>90,974</td><td>10</td></tr></tbody></table></div>
+      <div class="tw"><table><thead><tr><th>Operation</th><th>Contract</th><th>What it is</th><th>Typical gas (median)</th><th>Worst case (p95)</th><th>runs</th></tr></thead><tbody><tr><td><b>propose</b></td><td><code>MinimalGovernance.sol</code></td><td>Submit a governance proposal (a change to the medical rules).</td><td>79,944</td><td>79,944</td><td>10</td></tr><tr><td><b>vote</b></td><td><code>MinimalGovernance.sol</code></td><td>Cast one vote on a proposal.</td><td>76,987</td><td>76,987</td><td>10</td></tr><tr><td><b>record</b></td><td><code>DecisionRegistry.sol</code></td><td>Record a dispensed prescription on the immutable ledger.</td><td>90,974</td><td>90,974</td><td>10</td></tr></tbody></table></div>
       <p class="note">The zero-knowledge <code>verifyProof</code> cost is <b>constant</b> no matter
       how complex the medical check is — a key property of the design.</p>
       <h3 class="sub">Test environment</h3>
