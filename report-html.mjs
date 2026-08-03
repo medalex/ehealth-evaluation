@@ -69,6 +69,18 @@ const GAS_CONTRACT = {
   record: 'DecisionRegistry.sol',
   verifyProof: 'Groth16Verifier.sol',
 };
+// The on-chain function signature (its parameters = the inputs the contract was called with).
+const GAS_SIG = {
+  propose: 'propose(bytes32 policyHash)',
+  vote: 'vote(uint256 id)',
+  record: 'record(bytes32 stmtHash, bool outcome)',
+  verifyProof: 'verifyProof(uint[2] a, uint[2][2] b, uint[2] c, uint[21] pubSignals)',
+};
+const shortHex = (h) => (typeof h === 'string' && h.startsWith('0x') && h.length > 16) ? `${h.slice(0, 10)}…${h.slice(-6)}` : String(h);
+const inputStr = (op, inputs) => {
+  const v = inputs?.[op];
+  return v ? Object.entries(v).map(([k, val]) => `${k}=${esc(shortHex(val))}`).join(', ') : '';
+};
 
 const tabs = [];
 
@@ -100,15 +112,21 @@ if (corr) {
 // ── Gas ──────────────────────────────────────────────────────────────────────
 const gas = parseCsv(R('gas.csv'));
 if (gas) {
+  // Read the environment (has example call inputs) before building the rows.
+  let e = null;
+  try { e = JSON.parse(readFileSync(R('gas-env.json'), 'utf8')); } catch { /* no env file */ }
+  const inputs = e?.inputs ?? {};
+
   const ops = [...new Set(gas.map((r) => r.op))];
   const rows = ops.map((op) => {
     const s = summarize(gas.filter((r) => r.op === op).map((r) => Number(r.gasUsed)));
-    return [`<b>${esc(op)}</b>`, `<code>${esc(GAS_CONTRACT[op] ?? '—')}</code>`, esc(GAS_WHAT[op] ?? ''), nfmt(Math.round(s.median)), nfmt(Math.round(s.p95)), s.n];
+    const inp = inputStr(op, inputs);
+    const call = `<code>${esc(GAS_SIG[op] ?? op)}</code>${inp ? `<div class="dim mono">called with: ${inp}</div>` : ''}`;
+    return [`<b>${esc(op)}</b>`, `<code>${esc(GAS_CONTRACT[op] ?? '—')}</code>`, call, esc(GAS_WHAT[op] ?? ''), nfmt(Math.round(s.median)), nfmt(Math.round(s.p95)), s.n];
   });
-  // Measurement environment (written by bench-gas as results/gas-env.json).
+  // Measurement environment block.
   let envHtml = '';
-  try {
-    const e = JSON.parse(readFileSync(R('gas-env.json'), 'utf8'));
+  if (e) {
     const envRows = [
       ['Chain', `${esc(e.chain)} (chainId ${esc(e.chainId)})`],
       ['EVM client', esc(e.client)],
@@ -121,14 +139,15 @@ if (gas) {
     envHtml = `<h3 class="sub">Test environment</h3>
       <div class="tw"><table class="kv">${envRows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table></div>
       <p class="note">${esc(e.note)}</p>`;
-  } catch { /* no env file */ }
+  }
   tabs.push({
     id: 'gas', label: 'Cost (gas)',
     body: `<h2>On-chain cost — how expensive is each blockchain operation?</h2>
       <p class="intro">“Gas” is the standard unit of on-chain computation — think of it as the
-      price of a transaction. <b>Lower is cheaper.</b> For scale, one Ethereum block holds about
-      <b>30,000,000</b> gas, so every operation below is a tiny fraction of a single block.</p>
-      ${table(['Operation', 'Contract', 'What it is', 'Typical gas (median)', 'Worst case (p95)', 'runs'], rows)}
+      price of a transaction. <b>Lower is cheaper.</b> Each row is one smart-contract function,
+      the exact <b>inputs it was called with</b>, and the resulting gas. For scale, one Ethereum
+      block holds about <b>30,000,000</b> gas, so every operation below is a tiny fraction.</p>
+      ${table(['Operation', 'Contract', 'Call &amp; example input', 'What it is', 'Typical gas', 'Worst case (p95)', 'runs'], rows)}
       <p class="note">The zero-knowledge <code>verifyProof</code> cost is <b>constant</b> no matter
       how complex the medical check is — a key property of the design.</p>
       ${envHtml}`,
@@ -244,6 +263,7 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
   .sum { font-weight: 600; margin: 0 0 12px; }
   .note { font-size: 13px; opacity: .78; margin: 12px 0 0; }
   .dim { opacity: .6; font-size: 12px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-top: 3px; }
   .tw { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 14px; }
   th, td { text-align: left; padding: 8px 11px; border-bottom: 1px solid #eceef1; vertical-align: top; }

@@ -23,6 +23,7 @@
   .sum { font-weight: 600; margin: 0 0 12px; }
   .note { font-size: 13px; opacity: .78; margin: 12px 0 0; }
   .dim { opacity: .6; font-size: 12px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-top: 3px; }
   .tw { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 14px; }
   th, td { text-align: left; padding: 8px 11px; border-bottom: 1px solid #eceef1; vertical-align: top; }
@@ -37,7 +38,7 @@
 <body>
 <header><h1>eHealth prototype — evaluation results</h1>
 <p>Three questions: <b>does it work correctly?</b> · <b>what does it cost?</b> · <b>is it fast
-enough?</b> — Generated 8/3/2026, 6:30:42 PM. This file is self-contained: open it in any
+enough?</b> — Generated 8/3/2026, 6:33:38 PM. This file is self-contained: open it in any
 browser, no server or internet needed. Click the tabs below.</p></header>
 <main>
   <nav class="tabs"><button class="tab active" data-tab="correctness">Correctness <span class="tbadge">✓</span></button><button class="tab" data-tab="gas">Cost (gas)</button><button class="tab" data-tab="feasibility">Speed</button><button class="tab" data-tab="dao">Governance</button><button class="tab" data-tab="pending">Not run yet</button></nav>
@@ -52,13 +53,14 @@ browser, no server or internet needed. Click the tabs below.</p></header>
       <p class="note">“Observed” is the raw outcome (HTTP code / flags) for the record.</p></section>
 <section class="panel" id="panel-gas"><h2>On-chain cost — how expensive is each blockchain operation?</h2>
       <p class="intro">“Gas” is the standard unit of on-chain computation — think of it as the
-      price of a transaction. <b>Lower is cheaper.</b> For scale, one Ethereum block holds about
-      <b>30,000,000</b> gas, so every operation below is a tiny fraction of a single block.</p>
-      <div class="tw"><table><thead><tr><th>Operation</th><th>Contract</th><th>What it is</th><th>Typical gas (median)</th><th>Worst case (p95)</th><th>runs</th></tr></thead><tbody><tr><td><b>propose</b></td><td><code>MinimalGovernance.sol</code></td><td>Submit a governance proposal (a change to the medical rules).</td><td>79,944</td><td>79,944</td><td>10</td></tr><tr><td><b>vote</b></td><td><code>MinimalGovernance.sol</code></td><td>Cast one vote on a proposal.</td><td>76,987</td><td>76,987</td><td>10</td></tr><tr><td><b>record</b></td><td><code>DecisionRegistry.sol</code></td><td>Record a dispensed prescription on the immutable ledger.</td><td>90,974</td><td>90,974</td><td>10</td></tr></tbody></table></div>
+      price of a transaction. <b>Lower is cheaper.</b> Each row is one smart-contract function,
+      the exact <b>inputs it was called with</b>, and the resulting gas. For scale, one Ethereum
+      block holds about <b>30,000,000</b> gas, so every operation below is a tiny fraction.</p>
+      <div class="tw"><table><thead><tr><th>Operation</th><th>Contract</th><th>Call &amp; example input</th><th>What it is</th><th>Typical gas</th><th>Worst case (p95)</th><th>runs</th></tr></thead><tbody><tr><td><b>propose</b></td><td><code>MinimalGovernance.sol</code></td><td><code>propose(bytes32 policyHash)</code><div class="dim mono">called with: policyHash=0xf0ba5aa8…2d38ec</div></td><td>Submit a governance proposal (a change to the medical rules).</td><td>79,944</td><td>79,944</td><td>10</td></tr><tr><td><b>vote</b></td><td><code>MinimalGovernance.sol</code></td><td><code>vote(uint256 id)</code><div class="dim mono">called with: id=56</div></td><td>Cast one vote on a proposal.</td><td>76,987</td><td>76,987</td><td>10</td></tr><tr><td><b>record</b></td><td><code>DecisionRegistry.sol</code></td><td><code>record(bytes32 stmtHash, bool outcome)</code><div class="dim mono">called with: stmtHash=0x0c22280a…d5ad8d, outcome=true</div></td><td>Record a dispensed prescription on the immutable ledger.</td><td>90,974</td><td>90,974</td><td>10</td></tr></tbody></table></div>
       <p class="note">The zero-knowledge <code>verifyProof</code> cost is <b>constant</b> no matter
       how complex the medical check is — a key property of the design.</p>
       <h3 class="sub">Test environment</h3>
-      <div class="tw"><table class="kv"><tr><th>Chain</th><td>dedicated local EVM (ehealth-evm) (chainId 31338)</td></tr><tr><th>EVM client</th><td>Ganache/v7.9.2/EthereumJS TestRPC/v7.9.2/ethereum-js</td></tr><tr><th>Solidity compiler</th><td>solc 0.8.26</td></tr><tr><th>Contracts</th><td>MinimalGovernance, DecisionRegistry, Groth16Verifier</td></tr><tr><th>Tooling</th><td>ethers 6.17.0 · Node v20.11.0</td></tr><tr><th>Runs per operation</th><td>10</td></tr><tr><th>Measured at</th><td>8/3/2026, 6:26:30 PM</td></tr></table></div>
+      <div class="tw"><table class="kv"><tr><th>Chain</th><td>dedicated local EVM (ehealth-evm) (chainId 31338)</td></tr><tr><th>EVM client</th><td>Ganache/v7.9.2/EthereumJS TestRPC/v7.9.2/ethereum-js</td></tr><tr><th>Solidity compiler</th><td>solc 0.8.26</td></tr><tr><th>Contracts</th><td>MinimalGovernance, DecisionRegistry, Groth16Verifier</td></tr><tr><th>Tooling</th><td>ethers 6.17.0 · Node v20.11.0</td></tr><tr><th>Runs per operation</th><td>10</td></tr><tr><th>Measured at</th><td>8/3/2026, 6:33:33 PM</td></tr></table></div>
       <p class="note">Gas is deterministic — fixed by the contract bytecode + EVM rules, independent of the host machine.</p></section>
 <section class="panel" id="panel-feasibility"><h2>Speed — how long does a real person wait?</h2>
       <p class="intro">Time from starting an action to seeing the result. Judged against the

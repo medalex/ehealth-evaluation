@@ -73,6 +73,7 @@ async function main() {
   const push = (op, run, gasUsed, extra = {}) =>
     rows.push({ op, run, gasUsed: gasUsed.toString(), ...extra });
 
+  const example = {}; // one representative call's actual inputs, for the report
   for (let run = 0; run < RUNS; run++) {
     // propose(bytes32): fresh hash each run so we never collide with an existing proposal.
     const hash = randHash();
@@ -88,9 +89,17 @@ async function main() {
     push('vote', run, vr.gasUsed);
 
     // record(bytes32,bool): fresh stmtHash so we never hit the replay guard (409/revert).
-    const rr = await txWait(nm0, () => reg0.record(randHash(), true));
+    const stmtHash = randHash();
+    const rr = await txWait(nm0, () => reg0.record(stmtHash, true));
     push('record', run, rr.gasUsed);
+
+    if (run === 0) {
+      example.propose = { policyHash: hash };
+      example.vote = { id: id.toString() };
+      example.record = { stmtHash, outcome: true };
+    }
   }
+  env.inputs = example;
 
   // verifyProof gas — constant-cost headline. Only if a real proof fixture is present.
   const proofPath = join(__dir, 'fixtures', 'proof.json');
