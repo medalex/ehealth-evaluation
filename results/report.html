@@ -41,10 +41,10 @@
 <body>
 <header><h1>eHealth prototype — evaluation results</h1>
 <p>Three questions: <b>does it work correctly?</b> · <b>what does it cost?</b> · <b>is it fast
-enough?</b> — Generated 8/4/2026, 1:29:56 AM. This file is self-contained: open it in any
+enough?</b> — Generated 8/4/2026, 4:19:44 PM. This file is self-contained: open it in any
 browser, no server or internet needed. Click the tabs below.</p></header>
 <main>
-  <nav class="tabs"><button class="tab active" data-tab="correctness">Correctness <span class="tbadge">✓</span></button><button class="tab" data-tab="gas">Cost (gas)</button><button class="tab" data-tab="feasibility">Speed</button><button class="tab" data-tab="dao">Governance</button><button class="tab" data-tab="policies">Policies scaling</button><button class="tab" data-tab="pending">Not run yet</button></nav>
+  <nav class="tabs"><button class="tab active" data-tab="correctness">Correctness <span class="tbadge">✓</span></button><button class="tab" data-tab="gas">Cost (gas)</button><button class="tab" data-tab="feasibility">Speed</button><button class="tab" data-tab="dao">Governance</button><button class="tab" data-tab="zkp">ZKP scaling</button><button class="tab" data-tab="policies">Policies scaling</button></nav>
   <section class="panel active" id="panel-correctness"><h2>Correctness — does the system do the right thing?</h2>
       <p class="intro">Each row is one real end-to-end scenario, run against the live system. It
       checks that the described behaviour actually happens. <b class="pass-t">PASS</b> = behaved
@@ -81,6 +81,16 @@ browser, no server or internet needed. Click the tabs below.</p></header>
       <div class="tw"><table><thead><tr><th>Committee size (n)</th><th>Votes needed (k)</th><th>One-time setup gas</th><th>Per-conflict gas</th><th>Time</th></tr></thead><tbody><tr><td><b>3</b></td><td>2</td><td>937,792</td><td>265,014</td><td>521 ms</td></tr><tr><td><b>4</b></td><td>3</td><td>961,087</td><td>325,500</td><td>722 ms</td></tr><tr><td><b>5</b></td><td>3</td><td>984,382</td><td>325,500</td><td>758 ms</td></tr><tr><td><b>6</b></td><td>4</td><td>1,007,677</td><td>385,974</td><td>910 ms</td></tr><tr><td><b>7</b></td><td>5</td><td>1,030,972</td><td>446,448</td><td>1062 ms</td></tr></tbody></table></div>
       <p class="note">Per-conflict cost grows gently (roughly one small vote each); nothing here
       is expensive by blockchain standards.</p></section>
+<section class="panel" id="panel-zkp"><h2>Zero-knowledge proof — how does it scale?</h2>
+      <p class="intro">As the medical check grows, the proof circuit grows. <b>“Constraints” is
+      the circuit size</b> — the fundamental cost driver (proof-generation time is roughly linear
+      in it). Two axes are swept: more <b>allergies</b> (contraindication-tree depth) and more
+      <b>drugs</b> per prescription. Proof <i>verification</i> and proof <i>size</i> stay
+      constant regardless (see the Cost tab) — only generation scales.</p>
+      <div class="tw"><table><thead><tr><th>Variant</th><th>Growing axis</th><th>Circuit size (constraints)</th><th>Witness gen (.wasm)</th><th>Compile</th></tr></thead><tbody><tr><td>base</td><td>base</td><td>10,141</td><td>3.25 MB</td><td>32.2 s</td></tr><tr><td>allergies-d6</td><td>allergies</td><td>11,599</td><td>3.25 MB</td><td>32.1 s</td></tr><tr><td>allergies-d8</td><td>allergies</td><td>13,057</td><td>3.26 MB</td><td>32.4 s</td></tr><tr><td>allergies-d10</td><td>allergies</td><td>14,515</td><td>3.26 MB</td><td>33.5 s</td></tr><tr><td>drugs-n2</td><td>drugs</td><td>10,232</td><td>3.49 MB</td><td>32.0 s</td></tr><tr><td>drugs-n3</td><td>drugs</td><td>10,332</td><td>3.86 MB</td><td>35.8 s</td></tr></tbody></table></div>
+      <p class="note">Compile-only run (fast): shows the constraint-count scaling — the size proxy. Trusted-setup time and proving-key size need the full ceremony (<code>FULL=1 npm run bench:zkp</code>, slow under emulation).</p>
+      <p class="note">Allergies grow the circuit ~linearly; adding drugs is nearly free in
+      constraints. Either way, on-chain verification cost does not move.</p></section>
 <section class="panel" id="panel-policies"><h2>Governance-query latency — does it scale with the number of policies?</h2>
       <p class="intro">The prover reads the full set of clinical policies (theory T) from the
       knowledge graph at issuance time. This measures how long that <code>GET /policies</code>
@@ -90,9 +100,6 @@ browser, no server or internet needed. Click the tabs below.</p></header>
       <p class="note">Warm-up queries are discarded before timing. The latency is dominated by
       fixed overhead (HTTP + SPARQL setup + DKG call), so over a small range it stays flat —
       the per-policy cost is negligible next to that overhead.</p></section>
-<section class="panel" id="panel-pending"><h2>Benchmarks not run yet</h2>
-      <p class="intro">These produce no data until you run the matching command:</p>
-      <ul><li><b>ZKP scaling</b> — <code>npm run bench:zkp</code> → <code>zkp-scaling.csv</code></li></ul></section>
 </main>
 <script>
   document.querySelectorAll('.tab').forEach(function (b) {

@@ -1,6 +1,6 @@
 # Evaluation report
 
-Generated 2026-08-03T22:29:56.870Z
+Generated 2026-08-04T13:19:44.291Z
 
 ## RQ1 — Correctness
 
@@ -41,6 +41,21 @@ in isolation in RQ2/RQ3; here it is contextualised as perceived wait._
 
 > ZKP proof generation (the dominant issuance cost) is measured in isolation in RQ2 (bench-zkp).
 
+## RQ2 — ZKP circuit scaling
+
+| Variant | axis | constraints | compile | setup | .zkey | .wasm |
+|---------|------|-------------|---------|-------|-------|-------|
+| base | base | 10,141 | 32171 ms |  ms | — | 3323 KB |
+| allergies-d6 | allergies | 11,599 | 32119 ms |  ms | — | 3329 KB |
+| allergies-d8 | allergies | 13,057 | 32430 ms |  ms | — | 3334 KB |
+| allergies-d10 | allergies | 14,515 | 33487 ms |  ms | — | 3340 KB |
+| drugs-n2 | drugs | 10,232 | 31960 ms |  ms | — | 3575 KB |
+| drugs-n3 | drugs | 10,332 | 35789 ms |  ms | — | 3957 KB |
+
+> Constraints are the size proxy; Groth16 proof-gen time is ~linear in constraints, while
+> on-chain verification + proof size stay O(1) (see RQ3 gas). Per-size prove-time needs a
+> valid per-size witness (out of scope) — proof-gen at the deployed size is an RQ4 slice.
+
 ## RQ3 — k-of-n governance cost
 
 Cost of resolving one semantic conflict on-chain (propose → vote to quorum → approved),
@@ -68,5 +83,3 @@ How long the prover's `GET /policies` (SPARQL over the DKG) takes as the policy 
 | 29 | 24.2 ms | 27.1 ms | 10 |
 | 39 | 25.5 ms | 27.6 ms | 10 |
 
----
-_Not yet produced: zkp-scaling.csv (benches pending)._

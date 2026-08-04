@@ -45,10 +45,21 @@ function sh(cmd, opts = {}) {
   return execSync(cmd, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', ...opts });
 }
 
+function imageExists() {
+  try { sh(`docker image inspect ${IMAGE}`); return true; } catch { return false; }
+}
+
 function buildImage() {
-  console.log('[zkp] building the setup image (legacy builder — avoids the host BuildKit token_seed issue)...');
+  if (imageExists() && process.env.FORCE_BUILD !== '1') {
+    console.log(`[zkp] reusing existing ${IMAGE} image (set FORCE_BUILD=1 to rebuild)`);
+    return;
+  }
+  // BuildKit is required to cross-build the amd64 circom image on Apple Silicon. If it fails
+  // with a ~/.docker/.token_seed permission error, remove that root-owned file (the ~/.docker
+  // dir is user-owned so no sudo needed) and retry.
+  console.log('[zkp] building the setup image (BuildKit, --platform ' + PLATFORM + ')...');
   sh(`docker build --platform ${PLATFORM} -f "${PROVER}/Dockerfile.setup" -t ${IMAGE} "${PROVER}"`, {
-    env: { ...process.env, DOCKER_BUILDKIT: '0' }, stdio: 'inherit',
+    env: { ...process.env, DOCKER_BUILDKIT: '1' }, stdio: 'inherit',
   });
 }
 
@@ -62,32 +73,56 @@ function variantSource(params) {
   return src.replace(re, `= PrescriptionValidation(${args})`);
 }
 
+// FULL=1 also runs the (slow, emulated) trusted setup for setup-time + key sizes. Default is
+// compile-only: circom --r1cs + snarkjs r1cs info, which gives the constraint-count scaling
+// (the size proxy) fast, without the powersoftau ceremony that is very slow under amd64
+// emulation on Apple Silicon.
+const FULL = process.env.FULL === '1';
+
 function runPoint(point) {
   const tmp = mkdtempSync(join(tmpdir(), 'zkp-'));
   mkdirSync(join(tmp, 'src'), { recursive: true });
   const name = `variant_${point.label.replace(/[^a-z0-9]/gi, '_')}`;
   writeFileSync(join(tmp, 'src', `${name}.circom`), variantSource(point.params));
-
-  const t0 = Date.now();
-  const out = sh(
-    `docker run --rm --platform ${PLATFORM} -e PTAU_POWER=${PTAU} -v "${tmp}:/work/circuits" ${IMAGE} bash scripts/setup.sh ${name}`,
-    { env: { ...process.env, DOCKER_BUILDKIT: '0' }, maxBuffer: 64 * 1024 * 1024 },
-  );
-  const wallMs = Date.now() - t0;
-
-  const num = (re) => { const m = out.match(re); return m ? Number(m[1]) : null; };
-  const constraints = num(/CONSTRAINTS\s+(\d+)/);
-  const compileMs = num(/TIMING compile\s+(\d+)/);
-  const setupMs = num(/TIMING setup\s+(\d+)/);
+  const dockerEnv = { env: { ...process.env, DOCKER_BUILDKIT: '0' }, maxBuffer: 64 * 1024 * 1024 };
   const size = (f) => (existsSync(join(tmp, f)) ? statSync(join(tmp, f)).size : '');
 
-  const row = {
-    label: point.label, axis: point.axis,
-    N_PRESC: point.params.N_PRESC, N_LAB: point.params.N_LAB,
-    CONTRA_DEPTH: point.params.CONTRA_DEPTH, MERKLE_DEPTH: point.params.MERKLE_DEPTH,
-    constraints, compileMs, setupMs, wallMs,
-    zkeyBytes: size(`${name}_final.zkey`), wasmBytes: size(`${name}.wasm`), vkeyBytes: size(`${name}_vkey.json`),
-  };
+  let row;
+  if (!FULL) {
+    // Compile only → constraint count + compile wall-clock.
+    const t0 = Date.now();
+    const out = sh(
+      `docker run --rm --platform ${PLATFORM} -v "${tmp}:/work/circuits" ${IMAGE} `
+      + `bash -c "cd /work && circom circuits/src/${name}.circom --r1cs --wasm --output circuits -l node_modules && snarkjs r1cs info circuits/${name}.r1cs"`,
+      dockerEnv,
+    );
+    const compileMs = Date.now() - t0;
+    const m = out.match(/# of Constraints:\s*(\d+)/i) || out.match(/non-linear constraints:\s*(\d+)/i);
+    row = {
+      label: point.label, axis: point.axis,
+      N_PRESC: point.params.N_PRESC, N_LAB: point.params.N_LAB,
+      CONTRA_DEPTH: point.params.CONTRA_DEPTH, MERKLE_DEPTH: point.params.MERKLE_DEPTH,
+      constraints: m ? Number(m[1]) : null, compileMs, setupMs: '', wallMs: compileMs,
+      zkeyBytes: '', wasmBytes: size(`${name}_js/${name}.wasm`), vkeyBytes: '',
+    };
+  } else {
+    // Full compile + trusted setup (slow under emulation).
+    const t0 = Date.now();
+    const out = sh(
+      `docker run --rm --platform ${PLATFORM} -e PTAU_POWER=${PTAU} -v "${tmp}:/work/circuits" ${IMAGE} bash scripts/setup.sh ${name}`,
+      dockerEnv,
+    );
+    const wallMs = Date.now() - t0;
+    const num = (re) => { const mm = out.match(re); return mm ? Number(mm[1]) : null; };
+    row = {
+      label: point.label, axis: point.axis,
+      N_PRESC: point.params.N_PRESC, N_LAB: point.params.N_LAB,
+      CONTRA_DEPTH: point.params.CONTRA_DEPTH, MERKLE_DEPTH: point.params.MERKLE_DEPTH,
+      constraints: num(/CONSTRAINTS\s+(\d+)/), compileMs: num(/TIMING compile\s+(\d+)/),
+      setupMs: num(/TIMING setup\s+(\d+)/), wallMs,
+      zkeyBytes: size(`${name}_final.zkey`), wasmBytes: size(`${name}.wasm`), vkeyBytes: size(`${name}_vkey.json`),
+    };
+  }
   rmSync(tmp, { recursive: true, force: true });
   return row;
 }

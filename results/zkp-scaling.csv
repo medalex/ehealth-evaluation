@@ -1,0 +1,7 @@
+label,axis,N_PRESC,N_LAB,CONTRA_DEPTH,MERKLE_DEPTH,constraints,compileMs,setupMs,wallMs,zkeyBytes,wasmBytes,vkeyBytes
+base,base,1,2,4,3,10141,32171,,32171,,3402729,
+allergies-d6,allergies,1,2,6,3,11599,32119,,32119,,3408586,
+allergies-d8,allergies,1,2,8,3,13057,32430,,32430,,3414447,
+allergies-d10,allergies,1,2,10,3,14515,33487,,33487,,3420317,
+drugs-n2,drugs,2,2,4,3,10232,31960,,31960,,3660574,
+drugs-n3,drugs,3,2,4,3,10332,35789,,35789,,4052059,

@@ -221,18 +221,27 @@ if (dao) {
 // ── ZKP scaling ──────────────────────────────────────────────────────────────
 const zkp = parseCsv(R('zkp-scaling.csv'));
 if (zkp) {
-  const kb = (b) => (b ? `${Math.round(Number(b) / 1024)} KB` : '—');
-  const rows = zkp.map((r) => [
-    esc(r.label), esc(r.axis), nfmt(r.constraints),
-    `${(Number(r.compileMs) / 1000).toFixed(1)} s`, `${(Number(r.setupMs) / 1000).toFixed(1)} s`, kb(r.zkeyBytes),
-  ]);
+  const mb = (b) => (b ? `${(Number(b) / 1048576).toFixed(2)} MB` : '—');
+  const hasSetup = zkp.some((r) => r.setupMs);
+  const rows = zkp.map((r) => {
+    const base = [esc(r.label), esc(r.axis), nfmt(r.constraints), mb(r.wasmBytes), `${(Number(r.compileMs) / 1000).toFixed(1)} s`];
+    return hasSetup ? [...base, `${(Number(r.setupMs) / 1000).toFixed(1)} s`, mb(r.zkeyBytes)] : base;
+  });
+  const headers = hasSetup
+    ? ['Variant', 'Growing axis', 'Circuit size (constraints)', 'Witness gen (.wasm)', 'Compile', 'Trusted setup', 'Proving key']
+    : ['Variant', 'Growing axis', 'Circuit size (constraints)', 'Witness gen (.wasm)', 'Compile'];
   tabs.push({
     id: 'zkp', label: 'ZKP scaling',
     body: `<h2>Zero-knowledge proof — how does it scale?</h2>
-      <p class="intro">As the medical check gets bigger (more allergies / more drugs), the proof
-      circuit grows. “Constraints” is the size of the circuit; the build/setup times and key
-      size grow with it. Proof <i>verification</i>, though, stays constant (see the Cost tab).</p>
-      ${table(['Variant', 'Growing axis', 'Circuit size (constraints)', 'Compile', 'Setup', 'Key size'], rows)}`,
+      <p class="intro">As the medical check grows, the proof circuit grows. <b>“Constraints” is
+      the circuit size</b> — the fundamental cost driver (proof-generation time is roughly linear
+      in it). Two axes are swept: more <b>allergies</b> (contraindication-tree depth) and more
+      <b>drugs</b> per prescription. Proof <i>verification</i> and proof <i>size</i> stay
+      constant regardless (see the Cost tab) — only generation scales.</p>
+      ${table(headers, rows)}
+      ${hasSetup ? '' : '<p class="note">Compile-only run (fast): shows the constraint-count scaling — the size proxy. Trusted-setup time and proving-key size need the full ceremony (<code>FULL=1 npm run bench:zkp</code>, slow under emulation).</p>'}
+      <p class="note">Allergies grow the circuit ~linearly; adding drugs is nearly free in
+      constraints. Either way, on-chain verification cost does not move.</p>`,
   });
 }
 
