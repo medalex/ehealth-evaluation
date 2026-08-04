@@ -233,15 +233,28 @@ if (zkp) {
   tabs.push({
     id: 'zkp', label: 'ZKP scaling',
     body: `<h2>Zero-knowledge proof — how does it scale?</h2>
-      <p class="intro">As the medical check grows, the proof circuit grows. <b>“Constraints” is
-      the circuit size</b> — the fundamental cost driver (proof-generation time is roughly linear
-      in it). Two axes are swept: more <b>allergies</b> (contraindication-tree depth) and more
-      <b>drugs</b> per prescription. Proof <i>verification</i> and proof <i>size</i> stay
-      constant regardless (see the Cost tab) — only generation scales.</p>
+      <p class="intro"><b>What this is.</b> The doctor's app proves the prescription is clinically
+      safe (patient not allergic, dosage within limits, credentials valid) <i>without revealing
+      the patient's data</i>. That proof is produced by a fixed “circuit” — an arithmetic program
+      whose size is measured in <b>constraints</b>. More constraints = a bigger circuit = longer to
+      generate the proof (generation time is roughly linear in constraints). This tab asks:
+      <b>as the circuit is designed to handle more, how fast does it grow?</b></p>
+      <p class="intro"><b>The two axes.</b> <b>Allergies</b> = how many allergy/contraindication
+      entries the circuit can check (the “contraindication-tree depth”). <b>Drugs</b> = how many
+      drugs one prescription can contain. Each row recompiles the circuit at a different capacity
+      and reports its size. Note this is <i>design capacity</i>: within a given circuit, a specific
+      patient's actual number of allergies doesn't change the cost — the arrays are fixed size.</p>
       ${table(headers, rows)}
-      ${hasSetup ? '' : '<p class="note">Compile-only run (fast): shows the constraint-count scaling — the size proxy. Trusted-setup time and proving-key size need the full ceremony (<code>FULL=1 npm run bench:zkp</code>, slow under emulation).</p>'}
-      <p class="note">Allergies grow the circuit ~linearly; adding drugs is nearly free in
-      constraints. Either way, on-chain verification cost does not move.</p>`,
+      <p class="note"><b>How to read it.</b> Allergy capacity grows the circuit <b>linearly</b>
+      (each extra level ≈ +730 constraints); adding drug slots is <b>nearly free</b> in constraints.
+      Columns: <b>constraints</b> = circuit size; <b>.wasm</b> = the witness-generator program size;
+      <b>compile</b> = time to build the circuit (measured under amd64 emulation, so it is not a
+      production figure — the trend is what matters).</p>
+      ${hasSetup ? '' : '<p class="note">This is a fast <b>compile-only</b> run: it captures the constraint-count scaling (the size proxy). Trusted-setup time and proving-key size need the full ceremony — <code>FULL=1 npm run bench:zkp</code> (slow under emulation).</p>'}
+      <p class="note"><b>Why it matters.</b> Only proof <i>generation</i> scales, and it is a
+      one-time, client-side step at prescribing. Proof <i>verification</i> on-chain and the proof
+      <i>size</i> stay <b>constant</b> no matter how big the circuit is (see the Cost tab) — so the
+      recurring, on-chain cost never grows with clinical complexity.</p>`,
   });
 }
 
