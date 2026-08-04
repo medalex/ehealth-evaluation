@@ -3,6 +3,7 @@ allure-results/
 allure-report/
 .env
 bench-zkp/tmp/
+bench-zkp/.artifacts/
 bench-zkp/fixtures/*.ptau
 bench-gas/fixtures/*.json
 *.log

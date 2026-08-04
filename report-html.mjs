@@ -222,14 +222,18 @@ if (dao) {
 const zkp = parseCsv(R('zkp-scaling.csv'));
 if (zkp) {
   const mb = (b) => (b ? `${(Number(b) / 1048576).toFixed(2)} MB` : '—');
+  const sec = (ms) => (ms ? `${(Number(ms) / 1000).toFixed(1)} s` : '—');
   const hasSetup = zkp.some((r) => r.setupMs);
+  const allergyCol = zkp.some((r) => r.allergies);
   const rows = zkp.map((r) => {
-    const base = [esc(r.label), esc(r.axis), nfmt(r.constraints), mb(r.wasmBytes), `${(Number(r.compileMs) / 1000).toFixed(1)} s`];
-    return hasSetup ? [...base, `${(Number(r.setupMs) / 1000).toFixed(1)} s`, mb(r.zkeyBytes)] : base;
+    const first = allergyCol ? `<b>${esc(r.allergies)}</b>` : esc(r.label);
+    const base = [first, nfmt(r.constraints), sec(r.compileMs)];
+    return hasSetup ? [...base, sec(r.setupMs), mb(r.zkeyBytes), mb(r.wasmBytes)] : [...base, mb(r.wasmBytes)];
   });
+  const firstHdr = allergyCol ? 'Allergies (N_max)' : 'Variant';
   const headers = hasSetup
-    ? ['Variant', 'Growing axis', 'Circuit size (constraints)', 'Witness gen (.wasm)', 'Compile', 'Trusted setup', 'Proving key']
-    : ['Variant', 'Growing axis', 'Circuit size (constraints)', 'Witness gen (.wasm)', 'Compile'];
+    ? [firstHdr, 'Circuit size (constraints)', 'Compile time', 'Trusted-setup time', 'Proving key', 'Witness gen (.wasm)']
+    : [firstHdr, 'Circuit size (constraints)', 'Compile time', 'Witness gen (.wasm)'];
   tabs.push({
     id: 'zkp', label: 'ZKP scaling',
     body: `<h2>Zero-knowledge proof — how does it scale?</h2>

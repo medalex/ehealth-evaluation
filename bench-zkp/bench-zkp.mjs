@@ -30,15 +30,17 @@ const PLATFORM = process.env.ZKP_PLATFORM ?? 'linux/amd64';
 const IMAGE = 'zkp-setup';
 const CIRCUIT = 'prescription_validation_poseidon_merkle';
 
-// Base params and the two sweep axes the paper argues (allergies, drugs).
-const BASE = { N_DRUGS: 3, N_max: 3, N_PRESC: 1, BITLEN: 32, MERKLE_DEPTH: 3, N_LAB: 2, CONTRA_DEPTH: 4, LAB_DEPTH: 3 };
+// Base params — matches the DEPLOYED circuit (N_max=5 patient-allergy slots).
+// component main = PrescriptionValidation(3, 5, 1, 32, 3, 2, 4, 3).
+const BASE = { N_DRUGS: 3, N_max: 5, N_PRESC: 1, BITLEN: 32, MERKLE_DEPTH: 3, N_LAB: 2, CONTRA_DEPTH: 4, LAB_DEPTH: 3 };
 const ORDER = ['N_DRUGS', 'N_max', 'N_PRESC', 'BITLEN', 'MERKLE_DEPTH', 'N_LAB', 'CONTRA_DEPTH', 'LAB_DEPTH'];
 
+// Patient allergies = N_max (number of allergy slots the circuit checks per prescription).
+// The deployed circuit uses N_max=5; sweep 1..5 (override with ALLERGIES="1,2,3,4,5").
+const ALLERGIES = (process.env.ALLERGIES ?? '1,2,3,4,5').split(',').map(Number);
+
 function grid() {
-  const points = [{ label: 'base', axis: 'base', params: { ...BASE } }];
-  for (const d of [6, 8, 10]) points.push({ label: `allergies-d${d}`, axis: 'allergies', params: { ...BASE, CONTRA_DEPTH: d } });
-  for (const n of [2, 3]) points.push({ label: `drugs-n${n}`, axis: 'drugs', params: { ...BASE, N_PRESC: n } });
-  return points;
+  return ALLERGIES.map((n) => ({ label: `${n} allergies`, axis: 'allergies (N_max)', allergies: n, params: { ...BASE, N_max: n } }));
 }
 
 function sh(cmd, opts = {}) {
@@ -73,56 +75,46 @@ function variantSource(params) {
   return src.replace(re, `= PrescriptionValidation(${args})`);
 }
 
-// FULL=1 also runs the (slow, emulated) trusted setup for setup-time + key sizes. Default is
-// compile-only: circom --r1cs + snarkjs r1cs info, which gives the constraint-count scaling
-// (the size proxy) fast, without the powersoftau ceremony that is very slow under amd64
-// emulation on Apple Silicon.
-const FULL = process.env.FULL === '1';
+// COMPILE_ONLY=1 → only constraints + compile time (fastest). Default also runs the Groth16
+// trusted setup (compile + setup time + proving-key size), reusing ONE shared powers-of-tau
+// so the slow ceremony runs once, not per point.
+const COMPILE_ONLY = process.env.COMPILE_ONLY === '1';
+const ARTIFACTS = join(__dir, '.artifacts'); // persistent shared ptau
+
+function ensurePtau() {
+  mkdirSync(ARTIFACTS, { recursive: true });
+  if (existsSync(join(ARTIFACTS, 'pot.ptau'))) { console.log('[zkp] reusing shared powers-of-tau'); return; }
+  console.log(`[zkp] generating the shared powers-of-tau (2^${PTAU}) once — slow under emulation, reused for every point...`);
+  sh(`docker run --rm --platform ${PLATFORM} -v "${ARTIFACTS}:/work/ptau" ${IMAGE} bash -c `
+    + `'cd /work/ptau && snarkjs powersoftau new bn128 ${PTAU} p0.ptau -v && snarkjs powersoftau contribute p0.ptau p1.ptau --name=dev -e=rand && snarkjs powersoftau prepare phase2 p1.ptau pot.ptau -v && rm -f p0.ptau p1.ptau'`,
+    { env: { ...process.env, DOCKER_BUILDKIT: '0' }, stdio: 'inherit', maxBuffer: 64 * 1024 * 1024 });
+}
 
 function runPoint(point) {
   const tmp = mkdtempSync(join(tmpdir(), 'zkp-'));
   mkdirSync(join(tmp, 'src'), { recursive: true });
-  const name = `variant_${point.label.replace(/[^a-z0-9]/gi, '_')}`;
+  const name = 'v';
   writeFileSync(join(tmp, 'src', `${name}.circom`), variantSource(point.params));
   const dockerEnv = { env: { ...process.env, DOCKER_BUILDKIT: '0' }, maxBuffer: 64 * 1024 * 1024 };
   const size = (f) => (existsSync(join(tmp, f)) ? statSync(join(tmp, f)).size : '');
 
-  let row;
-  if (!FULL) {
-    // Compile only → constraint count + compile wall-clock.
-    const t0 = Date.now();
-    const out = sh(
-      `docker run --rm --platform ${PLATFORM} -v "${tmp}:/work/circuits" ${IMAGE} `
-      + `bash -c "cd /work && circom circuits/src/${name}.circom --r1cs --wasm --output circuits -l node_modules && snarkjs r1cs info circuits/${name}.r1cs"`,
-      dockerEnv,
-    );
-    const compileMs = Date.now() - t0;
-    const m = out.match(/# of Constraints:\s*(\d+)/i) || out.match(/non-linear constraints:\s*(\d+)/i);
-    row = {
-      label: point.label, axis: point.axis,
-      N_PRESC: point.params.N_PRESC, N_LAB: point.params.N_LAB,
-      CONTRA_DEPTH: point.params.CONTRA_DEPTH, MERKLE_DEPTH: point.params.MERKLE_DEPTH,
-      constraints: m ? Number(m[1]) : null, compileMs, setupMs: '', wallMs: compileMs,
-      zkeyBytes: '', wasmBytes: size(`${name}_js/${name}.wasm`), vkeyBytes: '',
-    };
-  } else {
-    // Full compile + trusted setup (slow under emulation).
-    const t0 = Date.now();
-    const out = sh(
-      `docker run --rm --platform ${PLATFORM} -e PTAU_POWER=${PTAU} -v "${tmp}:/work/circuits" ${IMAGE} bash scripts/setup.sh ${name}`,
-      dockerEnv,
-    );
-    const wallMs = Date.now() - t0;
-    const num = (re) => { const mm = out.match(re); return mm ? Number(mm[1]) : null; };
-    row = {
-      label: point.label, axis: point.axis,
-      N_PRESC: point.params.N_PRESC, N_LAB: point.params.N_LAB,
-      CONTRA_DEPTH: point.params.CONTRA_DEPTH, MERKLE_DEPTH: point.params.MERKLE_DEPTH,
-      constraints: num(/CONSTRAINTS\s+(\d+)/), compileMs: num(/TIMING compile\s+(\d+)/),
-      setupMs: num(/TIMING setup\s+(\d+)/), wallMs,
-      zkeyBytes: size(`${name}_final.zkey`), wasmBytes: size(`${name}.wasm`), vkeyBytes: size(`${name}_vkey.json`),
-    };
-  }
+  const compileCmd = `T0=$(date +%s%3N); circom circuits/src/${name}.circom --r1cs --wasm --output circuits -l node_modules; T1=$(date +%s%3N); echo "TIMING compile $((T1-T0))"; snarkjs r1cs info circuits/${name}.r1cs`;
+  const setupCmd = `T2=$(date +%s%3N); snarkjs groth16 setup circuits/${name}.r1cs /work/ptau/pot.ptau circuits/${name}_0.zkey; snarkjs zkey contribute circuits/${name}_0.zkey circuits/${name}_final.zkey --name=dev -e=rand; snarkjs zkey export verificationkey circuits/${name}_final.zkey circuits/${name}_vkey.json; T3=$(date +%s%3N); echo "TIMING setup $((T3-T2))"`;
+  const inner = COMPILE_ONLY ? `cd /work && ${compileCmd}` : `cd /work && ${compileCmd}; ${setupCmd}`;
+  const mounts = COMPILE_ONLY ? `-v "${tmp}:/work/circuits"` : `-v "${tmp}:/work/circuits" -v "${ARTIFACTS}:/work/ptau"`;
+
+  const out = sh(`docker run --rm --platform ${PLATFORM} ${mounts} ${IMAGE} bash -c '${inner}'`, dockerEnv);
+
+  const num = (re) => { const mm = out.match(re); return mm ? Number(mm[1]) : null; };
+  const cm = out.match(/# of Constraints:\s*(\d+)/i) || out.match(/non-linear constraints:\s*(\d+)/i);
+  const row = {
+    allergies: point.allergies, label: point.label, axis: point.axis,
+    constraints: cm ? Number(cm[1]) : null,
+    compileMs: num(/TIMING compile\s+(\d+)/),
+    setupMs: COMPILE_ONLY ? '' : num(/TIMING setup\s+(\d+)/),
+    zkeyBytes: COMPILE_ONLY ? '' : size(`${name}_final.zkey`),
+    wasmBytes: size(`${name}_js/${name}.wasm`),
+  };
   rmSync(tmp, { recursive: true, force: true });
   return row;
 }
@@ -141,9 +133,10 @@ function main() {
     process.exit(1);
   }
   buildImage();
+  if (!COMPILE_ONLY) ensurePtau();
   const rows = [];
   for (const point of grid()) {
-    console.log(`\n[zkp] ==> ${point.label} (${point.axis})  params=${JSON.stringify(point.params)}`);
+    console.log(`\n[zkp] ==> ${point.label} (${point.axis})`);
     try {
       const r = runPoint(point);
       console.log(`[zkp]     constraints=${r.constraints} compile=${r.compileMs}ms setup=${r.setupMs}ms zkey=${r.zkeyBytes}B`);
