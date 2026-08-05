@@ -41,7 +41,7 @@
 <body>
 <header><h1>eHealth prototype — evaluation results</h1>
 <p>Three questions: <b>does it work correctly?</b> · <b>what does it cost?</b> · <b>is it fast
-enough?</b> — Generated 8/4/2026, 4:21:55 PM. This file is self-contained: open it in any
+enough?</b> — Generated 8/5/2026, 11:12:18 AM. This file is self-contained: open it in any
 browser, no server or internet needed. Click the tabs below.</p></header>
 <main>
   <nav class="tabs"><button class="tab active" data-tab="correctness">Correctness <span class="tbadge">✓</span></button><button class="tab" data-tab="gas">Cost (gas)</button><button class="tab" data-tab="feasibility">Speed</button><button class="tab" data-tab="dao">Governance</button><button class="tab" data-tab="zkp">ZKP scaling</button><button class="tab" data-tab="policies">Policies scaling</button></nav>
@@ -93,13 +93,15 @@ browser, no server or internet needed. Click the tabs below.</p></header>
       drugs one prescription can contain. Each row recompiles the circuit at a different capacity
       and reports its size. Note this is <i>design capacity</i>: within a given circuit, a specific
       patient's actual number of allergies doesn't change the cost — the arrays are fixed size.</p>
-      <div class="tw"><table><thead><tr><th>Variant</th><th>Growing axis</th><th>Circuit size (constraints)</th><th>Witness gen (.wasm)</th><th>Compile</th></tr></thead><tbody><tr><td>base</td><td>base</td><td>10,141</td><td>3.25 MB</td><td>32.2 s</td></tr><tr><td>allergies-d6</td><td>allergies</td><td>11,599</td><td>3.25 MB</td><td>32.1 s</td></tr><tr><td>allergies-d8</td><td>allergies</td><td>13,057</td><td>3.26 MB</td><td>32.4 s</td></tr><tr><td>allergies-d10</td><td>allergies</td><td>14,515</td><td>3.26 MB</td><td>33.5 s</td></tr><tr><td>drugs-n2</td><td>drugs</td><td>10,232</td><td>3.49 MB</td><td>32.0 s</td></tr><tr><td>drugs-n3</td><td>drugs</td><td>10,332</td><td>3.86 MB</td><td>35.8 s</td></tr></tbody></table></div>
-      <p class="note"><b>How to read it.</b> Allergy capacity grows the circuit <b>linearly</b>
-      (each extra level ≈ +730 constraints); adding drug slots is <b>nearly free</b> in constraints.
-      Columns: <b>constraints</b> = circuit size; <b>.wasm</b> = the witness-generator program size;
-      <b>compile</b> = time to build the circuit (measured under amd64 emulation, so it is not a
-      production figure — the trend is what matters).</p>
-      <p class="note">This is a fast <b>compile-only</b> run: it captures the constraint-count scaling (the size proxy). Trusted-setup time and proving-key size need the full ceremony — <code>FULL=1 npm run bench:zkp</code> (slow under emulation).</p>
+      <div class="tw"><table><thead><tr><th>Allergies (N_max)</th><th>Circuit size (constraints)</th><th>Proving key (.zkey)</th><th>Witness gen (.wasm)</th></tr></thead><tbody><tr><td><b>1</b></td><td>5,715</td><td>3.53 MB</td><td>3.12 MB</td></tr><tr><td><b>2</b></td><td>7,928</td><td>4.58 MB</td><td>3.24 MB</td></tr><tr><td><b>3</b></td><td>10,141</td><td>6.14 MB</td><td>3.25 MB</td></tr><tr><td><b>4</b></td><td>12,354</td><td>7.19 MB</td><td>3.25 MB</td></tr><tr><td><b>5</b></td><td>14,567</td><td>8.25 MB</td><td>3.26 MB</td></tr></tbody></table></div>
+      <p class="note"><b>How to read it.</b> Each additional allergy adds ≈ <b>2,200 constraints</b>
+      and ≈ <b>1.2 MB</b> to the proving key — clean <b>linear</b> growth. Columns are the
+      deterministic metrics: <b>constraints</b> = circuit size (the cost driver), <b>.zkey</b> =
+      the proving key, <b>.wasm</b> = the witness-generator program.</p>
+      <p class="note"><b>On timing.</b> Compile / trusted-setup wall-times are <i>not</i> shown:
+      measured here under amd64 emulation (Apple Silicon) they varied from seconds to tens of
+      minutes for the same operation, so they are not representative. Representative proof-generation
+      time should be taken natively or from the running prover at the deployed size (N_max = 5).</p>
       <p class="note"><b>Why it matters.</b> Only proof <i>generation</i> scales, and it is a
       one-time, client-side step at prescribing. Proof <i>verification</i> on-chain and the proof
       <i>size</i> stay <b>constant</b> no matter how big the circuit is (see the Cost tab) — so the

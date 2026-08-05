@@ -222,18 +222,16 @@ if (dao) {
 const zkp = parseCsv(R('zkp-scaling.csv'));
 if (zkp) {
   const mb = (b) => (b ? `${(Number(b) / 1048576).toFixed(2)} MB` : '—');
-  const sec = (ms) => (ms ? `${(Number(ms) / 1000).toFixed(1)} s` : '—');
-  const hasSetup = zkp.some((r) => r.setupMs);
   const allergyCol = zkp.some((r) => r.allergies);
+  // Only the DETERMINISTIC metrics are shown: constraints + artifact sizes. Compile/setup
+  // wall-times measured under amd64 emulation were wildly variable (seconds to tens of
+  // minutes for the same op) and are intentionally omitted — they are not representative.
   const rows = zkp.map((r) => {
     const first = allergyCol ? `<b>${esc(r.allergies)}</b>` : esc(r.label);
-    const base = [first, nfmt(r.constraints), sec(r.compileMs)];
-    return hasSetup ? [...base, sec(r.setupMs), mb(r.zkeyBytes), mb(r.wasmBytes)] : [...base, mb(r.wasmBytes)];
+    return [first, nfmt(r.constraints), mb(r.zkeyBytes), mb(r.wasmBytes)];
   });
   const firstHdr = allergyCol ? 'Allergies (N_max)' : 'Variant';
-  const headers = hasSetup
-    ? [firstHdr, 'Circuit size (constraints)', 'Compile time', 'Trusted-setup time', 'Proving key', 'Witness gen (.wasm)']
-    : [firstHdr, 'Circuit size (constraints)', 'Compile time', 'Witness gen (.wasm)'];
+  const headers = [firstHdr, 'Circuit size (constraints)', 'Proving key (.zkey)', 'Witness gen (.wasm)'];
   tabs.push({
     id: 'zkp', label: 'ZKP scaling',
     body: `<h2>Zero-knowledge proof — how does it scale?</h2>
@@ -249,12 +247,14 @@ if (zkp) {
       and reports its size. Note this is <i>design capacity</i>: within a given circuit, a specific
       patient's actual number of allergies doesn't change the cost — the arrays are fixed size.</p>
       ${table(headers, rows)}
-      <p class="note"><b>How to read it.</b> Allergy capacity grows the circuit <b>linearly</b>
-      (each extra level ≈ +730 constraints); adding drug slots is <b>nearly free</b> in constraints.
-      Columns: <b>constraints</b> = circuit size; <b>.wasm</b> = the witness-generator program size;
-      <b>compile</b> = time to build the circuit (measured under amd64 emulation, so it is not a
-      production figure — the trend is what matters).</p>
-      ${hasSetup ? '' : '<p class="note">This is a fast <b>compile-only</b> run: it captures the constraint-count scaling (the size proxy). Trusted-setup time and proving-key size need the full ceremony — <code>FULL=1 npm run bench:zkp</code> (slow under emulation).</p>'}
+      <p class="note"><b>How to read it.</b> Each additional allergy adds ≈ <b>2,200 constraints</b>
+      and ≈ <b>1.2 MB</b> to the proving key — clean <b>linear</b> growth. Columns are the
+      deterministic metrics: <b>constraints</b> = circuit size (the cost driver), <b>.zkey</b> =
+      the proving key, <b>.wasm</b> = the witness-generator program.</p>
+      <p class="note"><b>On timing.</b> Compile / trusted-setup wall-times are <i>not</i> shown:
+      measured here under amd64 emulation (Apple Silicon) they varied from seconds to tens of
+      minutes for the same operation, so they are not representative. Representative proof-generation
+      time should be taken natively or from the running prover at the deployed size (N_max = 5).</p>
       <p class="note"><b>Why it matters.</b> Only proof <i>generation</i> scales, and it is a
       one-time, client-side step at prescribing. Proof <i>verification</i> on-chain and the proof
       <i>size</i> stay <b>constant</b> no matter how big the circuit is (see the Cost tab) — so the

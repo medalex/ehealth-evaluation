@@ -1,6 +1,6 @@
 # Evaluation report
 
-Generated 2026-08-04T13:19:44.291Z
+Generated 2026-08-05T08:12:18.663Z
 
 ## RQ1 — Correctness
 
@@ -45,12 +45,11 @@ in isolation in RQ2/RQ3; here it is contextualised as perceived wait._
 
 | Variant | axis | constraints | compile | setup | .zkey | .wasm |
 |---------|------|-------------|---------|-------|-------|-------|
-| base | base | 10,141 | 32171 ms |  ms | — | 3323 KB |
-| allergies-d6 | allergies | 11,599 | 32119 ms |  ms | — | 3329 KB |
-| allergies-d8 | allergies | 13,057 | 32430 ms |  ms | — | 3334 KB |
-| allergies-d10 | allergies | 14,515 | 33487 ms |  ms | — | 3340 KB |
-| drugs-n2 | drugs | 10,232 | 31960 ms |  ms | — | 3575 KB |
-| drugs-n3 | drugs | 10,332 | 35789 ms |  ms | — | 3957 KB |
+| 1 allergies | allergies (N_max) | 5,715 | 18430 ms | 126171 ms | 3611 KB | 3197 KB |
+| 2 allergies | allergies (N_max) | 7,928 | 21490 ms | 150986 ms | 4692 KB | 3314 KB |
+| 3 allergies | allergies (N_max) | 10,141 | 21409 ms | 9470536 ms | 6284 KB | 3323 KB |
+| 4 allergies | allergies (N_max) | 12,354 | 5385570 ms | 9921531 ms | 7365 KB | 3331 KB |
+| 5 allergies | allergies (N_max) | 14,567 | 3692290 ms | 8927584 ms | 8446 KB | 3340 KB |
 
 > Constraints are the size proxy; Groth16 proof-gen time is ~linear in constraints, while
 > on-chain verification + proof size stay O(1) (see RQ3 gas). Per-size prove-time needs a

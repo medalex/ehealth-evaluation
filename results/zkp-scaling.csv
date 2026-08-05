@@ -1,7 +1,6 @@
-label,axis,N_PRESC,N_LAB,CONTRA_DEPTH,MERKLE_DEPTH,constraints,compileMs,setupMs,wallMs,zkeyBytes,wasmBytes,vkeyBytes
-base,base,1,2,4,3,10141,32171,,32171,,3402729,
-allergies-d6,allergies,1,2,6,3,11599,32119,,32119,,3408586,
-allergies-d8,allergies,1,2,8,3,13057,32430,,32430,,3414447,
-allergies-d10,allergies,1,2,10,3,14515,33487,,33487,,3420317,
-drugs-n2,drugs,2,2,4,3,10232,31960,,31960,,3660574,
-drugs-n3,drugs,3,2,4,3,10332,35789,,35789,,4052059,
+allergies,label,axis,constraints,compileMs,setupMs,zkeyBytes,wasmBytes
+1,1 allergies,allergies (N_max),5715,18430,126171,3697641,3273443
+2,2 allergies,allergies (N_max),7928,21490,150986,4804249,3393200
+3,3 allergies,allergies (N_max),10141,21409,9470536,6435145,3402729
+4,4 allergies,allergies (N_max),12354,5385570,9921531,7541753,3410964
+5,5 allergies,allergies (N_max),14567,3692290,8927584,8648361,3420584
