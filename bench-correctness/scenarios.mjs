@@ -257,4 +257,49 @@ export const SCENARIOS = [
         actual: `v1=${v1.body?.verified} v2=${v2.body?.verified}`, notes: pass ? '' : (v2.body?.reason ?? '') };
     },
   },
+  {
+    id: 'Sc8', name: 'clinical-policy violation not issued', feature: 'Issuance', severity: 'critical',
+    what: 'A prescription that fails a clinical policy (lab value below the governed threshold) is rejected, not issued.',
+    async run() {
+      if (!(await consentReady())) {
+        return { status: 'BLOCKED', expected: '422 issued=false', actual: 'consent not anchored',
+          notes: 'precondition (consent) unavailable' };
+      }
+      // Publish a Metformin dosage-cap policy (max 10) — the system-level counterpart of the
+      // circuit's policy-violation (P3) reject, distinct from the contraindication reject in
+      // Sc2 (P2). Uses the prescribed dosage directly, so it needs no patient lab record.
+      const capCode = `pol:metformin-dosecap-${uid()}`;
+      await mfssia.publishPolicy({
+        code: capCode, name: 'Metformin dosage cap (Sc8)',
+        medicationCode: 'metformin', clinicalCondition: 'adult-max',
+        comparisonOperator: '<=', threshold: 10, deltaMax: 7776000,
+      }, true);
+      let applied = false;
+      const deadline = Date.now() + ANCHOR_TIMEOUT_MS;
+      console.log('[Sc8] waiting for the Metformin dosage-cap policy to anchor + take effect...');
+      while (Date.now() < deadline) {
+        const pl = await mfssia.listPolicies();
+        const list = Array.isArray(pl.body?.data) ? pl.body.data : (Array.isArray(pl.body) ? pl.body : []);
+        if (list.some((p) => String(p.id ?? '').toLowerCase().includes('dosecap'))) { applied = true; break; }
+        await sleep(6000);
+      }
+      if (!applied) {
+        return { status: 'BLOCKED', expected: '422 issued=false', actual: 'policy not anchored',
+          notes: 'dosage-cap policy never appeared in the DKG (write/latency)' };
+      }
+      // Prescribe well above the cap (500 > 10) — must be rejected on the dosage policy (P3).
+      const r = await hospital.issue({
+        doctorId: SEED.doctorInRegistry, patientId: SEED.patient,
+        drugId: SEED.drug.metformin, dosage: '500', patientAge: 55, workflowId: uid(),
+      });
+      if (r.status === 201) {
+        return { status: 'BLOCKED', expected: '422 issued=false', actual: '201 issued',
+          notes: 'policy did not bite — patient likely has no eGFR lab record for the check to apply' };
+      }
+      const pass = r.status === 422 && r.body?.issued === false;
+      return { status: pass ? 'PASS' : 'FAIL', expected: '422 issued=false',
+        actual: `${r.status} issued=${r.body?.issued}`,
+        notes: pass ? '' : 'expected a policy-violation rejection' };
+    },
+  },
 ];
