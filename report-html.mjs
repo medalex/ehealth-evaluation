@@ -74,7 +74,7 @@ const GAS_SIG = {
   propose: 'propose(bytes32 policyHash)',
   vote: 'vote(uint256 id)',
   record: 'record(bytes32 stmtHash, bool outcome)',
-  verifyProof: 'verifyProof(uint[2] a, uint[2][2] b, uint[2] c, uint[21] pubSignals)',
+  verifyProof: 'verifyProof(uint[2] a, uint[2][2] b, uint[2] c, uint[23] pubSignals)',
 };
 const shortHex = (h) => (typeof h === 'string' && h.startsWith('0x') && h.length > 16) ? `${h.slice(0, 10)}…${h.slice(-6)}` : String(h);
 const inputStr = (op, inputs) => {
